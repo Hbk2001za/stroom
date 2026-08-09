@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="620" height="200" viewBox="0 0 620 200" fill="none">
-  <g transform="translate(10,20) scale(1.6)">
-    <path d="M50 12 V56" stroke="#3d5a7a" stroke-width="4"></path>
-    <path d="M30 40 L50 60 L70 40" stroke="#3d5a7a" stroke-width="4" fill="none" stroke-linecap="square"></path>
-    <path d="M18 76 Q34 66 50 76 Q66 86 82 76" stroke="#5980a6" stroke-width="4" fill="none"></path>
-    <path d="M18 88 Q34 80 50 88 Q66 96 82 88" stroke="#9db6ca" stroke-width="3" fill="none"></path>
-  </g>
-  <text x="190" y="120" font-family="Barlow Condensed, sans-serif" font-size="72" font-weight="600" letter-spacing="1" fill="#1d1f20">STROOM</text>
-</svg>

@@ -358,3 +358,11 @@ select { max-width: 110px; }
   padding: 10px 12px;
   margin-bottom: 4px;
 }
+
+/* App logo styling for dark mode */
+#app-logo {
+  transition: filter 0.3s;
+}
+#app-logo:hover {
+  filter: drop-shadow(0 0 12px rgba(255,255,255,0.5));
+}
