@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stroom</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    
+    <div class="header">
+      <img src="logo.svg" alt="Stroom" width="48" height="48">
+      <h1>Stroom</h1>
+      <button class="dark-toggle" onclick="toggleDark()" title="Toggle dark mode">🌙</button>
+    </div>
+
+    <!-- Drop Zone -->
+    <div id="drop-zone">📥 Drag & drop URLs here — or paste below</div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('single')">🎯 Single URL</button>
+      <button class="tab" onclick="switchTab('batch')">📋 Batch URLs</button>
+    </div>
+
+    <!-- Single URL Tab -->
+    <div id="tab-single" class="tab-content active">
+
+      <!-- YouTube Video -->
+      <div class="card">
+        <label>🎬 YouTube Video URL</label>
+        <div class="row">
+          <input type="text" id="yt-video" placeholder="https://www.youtube.com/watch?v=...">
+          <select id="quality-yt-video">
+            <option value="best">Best</option>
+            <option value="1080">1080p</option>
+            <option value="720">720p</option>
+            <option value="480">480p</option>
+            <option value="360">360p</option>
+          </select>
+          <button id="btn-yt-video" onclick="download('yt-video', 'video')">Download</button>
+          <button class="cancel-btn" id="cancel-yt-video" onclick="cancelDownload('yt-video')" style="display:none;">⏹</button>
+        </div>
+        <div class="progress-container" id="progress-yt-video">
+          <div class="progress-bar"><div class="progress-fill" id="fill-yt-video"></div></div>
+          <div class="progress-text" id="progress-text-yt-video"></div>
+        </div>
+        <span class="status" id="status-yt-video"></span>
+      </div>
+
+      <!-- YouTube MP3 -->
+      <div class="card">
+        <label>🎵 YouTube MP3 URL</label>
+        <div class="row">
+          <input type="text" id="yt-mp3" placeholder="https://www.youtube.com/watch?v=...">
+          <select id="quality-yt-mp3">
+            <option value="320">320kbps</option>
+            <option value="256">256kbps</option>
+            <option value="192">192kbps</option>
+            <option value="128">128kbps</option>
+          </select>
+          <button id="btn-yt-mp3" onclick="download('yt-mp3', 'mp3')">Download</button>
+          <button class="cancel-btn" id="cancel-yt-mp3" onclick="cancelDownload('yt-mp3')" style="display:none;">⏹</button>
+        </div>
+        <div class="progress-container" id="progress-yt-mp3">
+          <div class="progress-bar"><div class="progress-fill" id="fill-yt-mp3"></div></div>
+          <div class="progress-text" id="progress-text-yt-mp3"></div>
+        </div>
+        <span class="status" id="status-yt-mp3"></span>
+      </div>
+
+      <!-- Spotify -->
+      <div class="card">
+        <label>🟢 Spotify Song or Playlist (Public)</label>
+        <div class="row">
+          <input type="text" id="spotify-public" placeholder="https://open.spotify.com/track/... or /playlist/...">
+          <select id="quality-spotify-public">
+            <option value="320">320kbps</option>
+            <option value="256">256kbps</option>
+            <option value="192">192kbps</option>
+            <option value="128">128kbps</option>
+          </select>
+          <button id="btn-spotify-public" onclick="download('spotify-public', 'spotify-public')">Download</button>
+          <button class="cancel-btn" id="cancel-spotify-public" onclick="cancelDownload('spotify-public')" style="display:none;">⏹</button>
+        </div>
+        <div class="progress-container" id="progress-spotify-public">
+          <div class="progress-bar"><div class="progress-fill" id="fill-spotify-public"></div></div>
+          <div class="progress-text" id="progress-text-spotify-public"></div>
+        </div>
+        <span class="status" id="status-spotify-public"></span>
+      </div>
+
+      <div class="card">
+        <label>🔒 Spotify Song or Playlist (Private)</label>
+        <div class="row">
+          <input type="text" id="spotify-private" placeholder="https://open.spotify.com/track/... or /playlist/...">
+          <select id="quality-spotify-private">
+            <option value="320">320kbps</option>
+            <option value="256">256kbps</option>
+            <option value="192">192kbps</option>
+            <option value="128">128kbps</option>
+          </select>
+          <button id="btn-spotify-private" onclick="download('spotify-private', 'spotify-private')">Download</button>
+          <button class="cancel-btn" id="cancel-spotify-private" onclick="cancelDownload('spotify-private')" style="display:none;">⏹</button>
+        </div>
+        <div class="progress-container" id="progress-spotify-private">
+          <div class="progress-bar"><div class="progress-fill" id="fill-spotify-private"></div></div>
+          <div class="progress-text" id="progress-text-spotify-private"></div>
+        </div>
+        <span class="status" id="status-spotify-private"></span>
+      </div>
+    </div>
+
+    <!-- Batch Tab -->
+    <div id="tab-batch" class="tab-content">
+      <div class="card">
+        <label>📋 Paste multiple URLs (one per line — don't mix YouTube and Spotify)</label>
+        <textarea id="batch-urls" placeholder="https://www.youtube.com/watch?v=...&#10;https://www.youtube.com/watch?v=...&#10;https://www.youtube.com/watch?v=..."></textarea>
+        <div class="row" style="margin-top:8px;">
+          <select id="batch-type">
+            <option value="mp3">YouTube → MP3</option>
+            <option value="video">YouTube → Video</option>
+            <option value="spotify-public">Spotify Public</option>
+            <option value="spotify-private">Spotify Private</option>
+          </select>
+          <select id="quality-batch">
+            <option value="best">Best/320kbps</option>
+            <option value="1080">1080p / 256kbps</option>
+            <option value="720">720p / 192kbps</option>
+            <option value="480">480p / 128kbps</option>
+          </select>
+          <button id="btn-batch" onclick="downloadBatch()">Download All</button>
+          <button class="cancel-btn" id="cancel-batch" onclick="cancelDownload('batch')" style="display:none;">⏹ Stop All</button>
+        </div>
+        <div class="progress-container" id="progress-batch">
+          <div class="progress-bar"><div class="progress-fill" id="fill-batch"></div></div>
+          <div class="progress-text" id="progress-text-batch"></div>
+        </div>
+        <span class="status" id="status-batch"></span>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="history-section">
+      <div class="history-header">
+        <h3>📜 Recent Downloads</h3>
+        <div class="history-actions">
+          <button class="history-btn" onclick="viewHistory()">View All</button>
+          <button class="history-btn" onclick="downloadHistory()">📥 Export</button>
+          <button class="clear-btn" onclick="clearHistory()">Clear</button>
+        </div>
+      </div>
+      <div class="history-list" id="history-list">
+        <div style="color:var(--label);font-size:12px;text-align:center;padding:10px;">No downloads yet</div>
+      </div>
+    </div>
+
+    <button class="folder-btn" onclick="window.api.openDownloads()">📂 Open Downloads Folder</button>
+  </div>
+
+  <!-- History Modal -->
+  <div id="history-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>📜 Download History</h3>
+        <button class="modal-close" onclick="closeHistory()">✕</button>
+      </div>
+      <div class="modal-body" id="history-full-list"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
