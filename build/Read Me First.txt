@@ -19,15 +19,19 @@ STROOM — INSTALL INSTRUCTIONS
    Allow/OK — this is normal macOS security, not a bug, and it won't
    ask again once granted.
 
-4. REQUIRED TOOLS — Stroom needs a few free command-line tools
-   installed to actually download/convert files. If you haven't
-   already, open Terminal and run:
+4. THAT'S IT — yt-dlp, ffmpeg, and spotdl are bundled inside the app,
+   so YouTube/MP3/Spotify/Any-Site downloads work immediately with no
+   further setup.
 
-     brew install yt-dlp ffmpeg
-     pipx install spotdl
-     pip3 install -U demucs      (optional, only for Remove Vocals)
+   The one exception is "Remove Vocals" (Beta), which needs demucs
+   installed separately since it depends on PyTorch (too large to
+   bundle). If you want that feature, open Terminal and run:
 
-   Don't have Homebrew? Install it first from https://brew.sh
+     pip3 install -U demucs
+
+RESPONSIBLE USE: you're responsible for having the rights/permission
+to download or edit any content. Please support artists and creators
+where you can.
 
 Full documentation and updates:
 https://github.com/Hbk2001za/stroom

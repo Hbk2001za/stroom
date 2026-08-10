@@ -8,6 +8,22 @@ from one simple desktop app.
 
 ---
 
+## ⚖️ Responsible Use
+
+Stroom is a tool — what you do with it is your responsibility. Before
+downloading, converting, or editing anything, make sure you actually have
+the rights or permission to do so (e.g. it's your own content, it's
+licensed for personal use, or it's otherwise permitted where you live).
+Copyright law varies by country and Stroom doesn't make that determination
+for you.
+
+Wherever possible, please support the artists and creators behind the
+music and videos you enjoy — buy the track, stream it through a paid
+service, back their Patreon, go to the show. Tools like this shouldn't be
+a substitute for that.
+
+---
+
 ## Installing on macOS
 
 1. Download `Stroom-<version>-universal.dmg` from the [releases page](https://github.com/Hbk2001za/stroom/releases/latest) (works on both Intel and Apple Silicon Macs).
@@ -18,28 +34,20 @@ from one simple desktop app.
    - You only need to do this once — after the first successful launch, it opens normally.
 4. **Folder access prompts.** The first time you download something, and again the first time you use "Choose Download Folder" or "Open Downloads Folder," macOS will ask for permission to access that folder. Click **Allow/OK** each time — this is normal macOS sandboxing, not a bug, and it won't ask again for the same folder once granted.
 
-### Required command-line tools (macOS)
+### Required tools (macOS)
 
-Stroom relies on a few well-known open-source command-line tools to actually do the downloading/converting. Install these once via [Homebrew](https://brew.sh):
+None — `yt-dlp`, `ffmpeg`, and `spotdl` ship bundled inside the app, so
+video/MP3/Spotify/Any-Site downloads all work immediately, no setup needed.
 
-```bash
-brew install yt-dlp ffmpeg
-pipx install spotdl
-pip3 install -U demucs   # only needed for the "Remove Vocals" feature
-```
-
-If you don't have Homebrew or pipx yet:
+The only exception is **`demucs`**, used solely by the "Remove Vocals"
+(Beta) feature, which still needs a one-time manual install since it
+depends on PyTorch (too large to bundle):
 
 ```bash
-# Homebrew
-curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh | bash
-
-# pipx
-brew install pipx
-pipx ensurepath
+pip3 install -U demucs
 ```
 
-Stroom will use whichever `yt-dlp`, `ffmpeg`, `spotdl`, and `demucs` it finds on your system — no need to restart the app after installing them, just try the download again.
+If Remove Vocals says it can't find demucs, that's what's missing.
 
 ---
 
@@ -49,12 +57,28 @@ Stroom will use whichever `yt-dlp`, `ffmpeg`, `spotdl`, and `demucs` it finds on
 2. Run the installer. **Windows SmartScreen will flag it** since it isn't code-signed — click **More info**, then **Run anyway**.
 3. Follow the setup wizard (you can choose the install location).
 
-### Required command-line tools (Windows)
+### Required tools (Windows)
 
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp/releases) — download `yt-dlp.exe` and place it somewhere on your `PATH`
-- [ffmpeg](https://www.gyan.dev/ffmpeg/builds/) — download a build and add its `bin` folder to your `PATH`
-- `spotdl`: `pip install spotdl`
-- `demucs` (optional, for vocal removal): `pip install -U demucs`
+None — `yt-dlp`, `ffmpeg`, and `spotdl` ship bundled inside the installer,
+so video/MP3/Spotify/Any-Site downloads all work immediately, no setup
+needed.
+
+The only exception is **`demucs`**, used solely by the "Remove Vocals"
+(Beta) feature, which still needs a one-time manual install since it
+depends on PyTorch (too large to bundle):
+
+```
+pip install -U demucs
+```
+(needs [Python](https://www.python.org/downloads/) installed first — tick
+"Add python.exe to PATH" during its install, then sign out/in or restart
+before trying again)
+
+If Remove Vocals says it can't find demucs, that's what's missing.
+
+A copy of these Windows instructions is also included with the installer:
+after installing, look for `Windows Read Me First.txt` inside the app's
+install folder (typically `C:\Program Files\Stroom\resources\`).
 
 ---
 

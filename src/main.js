@@ -36,6 +36,20 @@ function fixPath() {
 }
 fixPath();
 
+// ── Bundled tool resolution ─────────────────────────
+// yt-dlp/ffmpeg/spotdl ship inside the app (via extraResources) so Stroom
+// works with zero setup. Falls back to whatever's on PATH — used in dev
+// mode (no extraResources bundle exists yet) and for tools we don't bundle
+// (demucs: needs a separate PyTorch-inclusive build per platform).
+function resolveTool(name) {
+  const ext = process.platform === 'win32' ? '.exe' : '';
+  if (app.isPackaged) {
+    const bundled = path.join(process.resourcesPath, 'bin', name + ext);
+    if (fs.existsSync(bundled)) return bundled;
+  }
+  return name;
+}
+
 // ── Splash screen ──────────────────────────────────
 function createSplashScreen() {
   splashWindow = new BrowserWindow({
@@ -143,13 +157,29 @@ function parseProgress(line) {
   return null;
 }
 
+// The renderer builds commands as plain shell strings starting with a bare
+// tool name (e.g. "yt-dlp -f ... url"). Swap that leading token for the
+// bundled binary's absolute path, and point yt-dlp/spotdl at the bundled
+// ffmpeg explicitly via their own flags — this is what makes downloads work
+// with zero setup instead of depending on the user's PATH.
+function prepareCommand(command) {
+  const ffmpeg = resolveTool('ffmpeg');
+  if (command.startsWith('yt-dlp ')) {
+    return `"${resolveTool('yt-dlp')}" --ffmpeg-location "${ffmpeg}" ${command.slice('yt-dlp '.length)}`;
+  }
+  if (command.startsWith('spotdl ')) {
+    return `"${resolveTool('spotdl')}" ${command.slice('spotdl '.length)} --ffmpeg "${ffmpeg}"`;
+  }
+  return command;
+}
+
 ipcMain.handle('run-command', async (event, command) => {
   if (activeProcess) { try { process.kill(-activeProcess.pid, 'SIGTERM'); } catch(e) { activeProcess.kill('SIGTERM'); } activeProcess = null; }
   isCancelled = false;
   return new Promise((resolve) => {
     // detached so the shell gets its own process group — lets cancel-command
     // kill the whole tree (yt-dlp/ffmpeg/spotdl), not just the shell wrapper.
-    activeProcess = spawn(command, { shell: true, cwd: app.getPath('downloads'), detached: true });
+    activeProcess = spawn(prepareCommand(command), { shell: true, cwd: app.getPath('downloads'), detached: true });
     activeProcess.stderr.on('data', (data) => {
       for (const line of data.toString().split('\n')) {
         const p = parseProgress(line);
@@ -216,8 +246,8 @@ ipcMain.handle('remove-vocals', async (event, { url, outDir }) => {
     // Step 1: download audio via yt-dlp. --print after_move:filepath prints the
     // final file path once post-processing (the mp3 conversion) is done.
     const dl = await runStep(
-      'yt-dlp',
-      ['-x', '--audio-format', 'mp3', '--print', 'after_move:filepath', '-o', path.join(tmpDir, '%(title)s.%(ext)s'), url],
+      resolveTool('yt-dlp'),
+      ['-x', '--audio-format', 'mp3', '--ffmpeg-location', resolveTool('ffmpeg'), '--print', 'after_move:filepath', '-o', path.join(tmpDir, '%(title)s.%(ext)s'), url],
       tmpDir, '⬇️ '
     );
     if (isCancelled) return { success: false, cancelled: true, message: 'Cancelled' };
@@ -230,7 +260,7 @@ ipcMain.handle('remove-vocals', async (event, { url, outDir }) => {
 
     // Step 2: split vocals from instrumental with demucs.
     const sep = await runStep(
-      'demucs',
+      resolveTool('demucs'), // not bundled yet — falls back to PATH
       ['--two-stems=vocals', '--mp3', '-o', path.join(tmpDir, 'separated'), audioFile],
       tmpDir, '🎤 '
     );

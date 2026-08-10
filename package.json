@@ -6,7 +6,9 @@
   "scripts": {
     "start": "electron .",
     "build": "electron-builder --mac --win",
+    "prebuild:mac": "node scripts/fetch-tools.js mac",
     "build:mac": "electron-builder --mac",
+    "prebuild:win": "node scripts/fetch-tools.js win",
     "build:win": "electron-builder --win"
   },
   "author": "",
@@ -28,7 +30,13 @@
           ]
         }
       ],
-      "icon": "build/logo.icns"
+      "icon": "build/logo.icns",
+      "extraResources": [
+        { "from": "build/bin/mac/yt-dlp", "to": "bin/yt-dlp" },
+        { "from": "build/bin/mac/ffmpeg", "to": "bin/ffmpeg" },
+        { "from": "build/bin/mac/spotdl", "to": "bin/spotdl" }
+      ],
+      "x64ArchFiles": "Contents/Resources/bin/**"
     },
     "dmg": {
       "contents": [
@@ -46,7 +54,13 @@
           ]
         }
       ],
-      "icon": "build/logo.ico"
+      "icon": "build/logo.ico",
+      "extraResources": [
+        { "from": "build/Windows Read Me First.txt", "to": "Windows Read Me First.txt" },
+        { "from": "build/bin/win/yt-dlp.exe", "to": "bin/yt-dlp.exe" },
+        { "from": "build/bin/win/ffmpeg.exe", "to": "bin/ffmpeg.exe" },
+        { "from": "build/bin/win/spotdl.exe", "to": "bin/spotdl.exe" }
+      ]
     },
     "nsis": {
       "oneClick": false,

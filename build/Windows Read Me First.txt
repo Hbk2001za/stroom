@@ -1,0 +1,34 @@
+STROOM — WINDOWS INSTALL INSTRUCTIONS
+======================================
+
+1. Run "Stroom Setup.exe".
+
+2. WINDOWS SMARTSCREEN WILL BLOCK IT — this app isn't code-signed with
+   a paid certificate, so Windows flags it the first time. To proceed:
+
+     - Click "More info"
+     - Click "Run anyway"
+
+   You only need to do this once, for the installer itself.
+
+3. Follow the setup wizard (you can choose the install location).
+
+4. THAT'S IT — yt-dlp, ffmpeg, and spotdl are bundled inside the
+   installer, so YouTube/MP3/Spotify/Any-Site downloads work
+   immediately with no further setup.
+
+   The one exception is "Remove Vocals" (Beta), which needs demucs
+   installed separately since it depends on PyTorch (too large to
+   bundle). If you want that feature:
+
+     - Install Python from https://www.python.org/downloads/
+       (tick "Add python.exe to PATH" during install)
+     - Open Command Prompt and run: pip install -U demucs
+     - Sign out and back in (or restart your PC) so Stroom can see it
+
+RESPONSIBLE USE: you're responsible for having the rights/permission
+to download or edit any content. Please support artists and creators
+where you can.
+
+Full documentation and updates:
+https://github.com/Hbk2001za/stroom

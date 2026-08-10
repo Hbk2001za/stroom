@@ -407,6 +407,16 @@ body.dark #app-logo {
   text-align: center;
 }
 
+.disclaimer {
+  font-size: 10.5px;
+  color: var(--label);
+  margin-top: 10px;
+  text-align: center;
+  line-height: 1.4;
+  padding: 0 10px;
+  opacity: 0.85;
+}
+
 /* Donate modal */
 .donate-message {
   font-size: 13px;
