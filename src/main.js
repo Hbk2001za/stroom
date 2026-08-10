@@ -246,15 +246,33 @@ ipcMain.handle('update-tools', async () => {
       : 'pip3 install --user pipx || pip install --user pipx || python3 -m pip install --user pipx || python -m pip install --user pipx');
     commands.push('pipx ensurepath');
   }
-  // --force on the install fallback in case a previous attempt got killed
-  // mid-install (see the 10-minute timeout below) and left a partial venv.
-  commands.push('pipx upgrade demucs || pipx install demucs --force');
-  // demucs imports numpy directly, but pipx's isolated venv doesn't always
-  // pull it in as a transitive dependency — confirmed reproducible: demucs
-  // installed via plain pip gets numpy as a side effect and works, but the
-  // same version installed via pipx throws "ModuleNotFoundError: No module
-  // named 'numpy'" at runtime (exit 1) without this.
-  commands.push('pipx inject demucs numpy --force');
+  // Intel Mac dead end, confirmed via PyPI metadata: demucs pins
+  // torch<2.3 + numpy<2 specifically for darwin+x86_64, because PyTorch
+  // dropped Intel Mac wheels entirely after 2.2.2. numpy's last <2 release
+  // (1.26.4) only ships wheels up to Python 3.12 — none for 3.13+. So on
+  // an Intel Mac running a newer Python, pip is forced to build ancient
+  // numpy from source, which fails outright (numpy's legacy build needs
+  // distutils, removed in modern Python/setuptools). The only fix is
+  // installing demucs with an older, compatible Python if one exists.
+  const isIntelMac = process.platform === 'darwin' && process.arch === 'x64';
+  const compatiblePython = isIntelMac
+    ? ['python3.12', 'python3.11', 'python3.10', 'python3.9'].find(p => hasCmd(`which ${p}`))
+    : null;
+
+  if (isIntelMac && !compatiblePython) {
+    commands.push('echo "Remove Vocals needs Python 3.9-3.12 on Intel Macs (PyTorch dropped Intel Mac support after version 2.2, which needs an older numpy with no wheels for Python 3.13+). Run: brew install python@3.11 — then click Update Tools again."');
+  } else {
+    const pythonFlag = compatiblePython ? ` --python ${compatiblePython}` : '';
+    // --force on the install fallback in case a previous attempt got killed
+    // mid-install (see the 10-minute timeout below) and left a partial venv.
+    commands.push(`pipx upgrade demucs || pipx install demucs --force${pythonFlag}`);
+    // demucs imports numpy directly, but pipx's isolated venv doesn't always
+    // pull it in as a transitive dependency — confirmed reproducible: demucs
+    // installed via plain pip gets numpy as a side effect and works, but the
+    // same version installed via pipx throws "ModuleNotFoundError: No module
+    // named 'numpy'" at runtime (exit 1) without this.
+    commands.push('pipx inject demucs numpy --force');
+  }
 
   let output = '';
   for (const cmd of commands) {
