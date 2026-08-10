@@ -44,8 +44,12 @@ The only exception is **`demucs`**, used solely by the "Remove Vocals"
 depends on PyTorch (too large to bundle):
 
 ```bash
-pip3 install -U demucs
+pipx install demucs
 ```
+
+(`pip3 install demucs` will fail on modern Homebrew Python with an
+`externally-managed-environment` error — that's expected, use `pipx`
+instead. If you don't have pipx yet: `brew install pipx && pipx ensurepath`.)
 
 If Remove Vocals says it can't find demucs, that's what's missing.
 
