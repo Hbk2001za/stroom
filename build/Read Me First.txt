@@ -25,14 +25,16 @@ STROOM — INSTALL INSTRUCTIONS
 
    The one exception is "Remove Vocals" (Beta), which needs demucs
    installed separately since it depends on PyTorch (too large to
-   bundle). Easiest way: open Stroom and click "Update Tools" at the
-   bottom of the app — it installs everything needed automatically.
+   bundle). On Apple Silicon Macs, open Stroom and click "Update Tools"
+   at the bottom of the app — it installs everything needed
+   automatically.
 
-   Intel Mac note: this may not work on Python 3.13+ due to PyTorch
-   dropping Intel Mac support after v2.2 — Update Tools now detects
-   this and uses an older Python automatically if one is installed
-   (brew install python@3.11 if it says none was found). See the
-   README for full details.
+   Intel Mac note: Remove Vocals is NOT available on Intel Macs. Two
+   separate dependencies demucs needs (PyTorch, and a Rust-based audio
+   library) have both dropped Intel Mac support — this is an upstream
+   limitation, not fixable from Stroom's side. The app disables that
+   feature automatically with an explanation. Everything else works
+   normally on Intel Mac.
 
 5. UPDATES — Stroom checks for new versions on launch and shows a
    banner with a one-click "Download & Install" button when one's

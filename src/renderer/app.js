@@ -514,6 +514,24 @@ async function checkForUpdatesOnInit() {
   } catch (e) { /* offline or GitHub unreachable — fail silently, not worth bothering the user */ }
 }
 
+// ============ INTEL MAC RESTRICTIONS ============
+// Remove Vocals is a confirmed dead end on Intel Mac — PyTorch and a
+// Rust-based demucs dependency both dropped Intel Mac support. Rather than
+// leave a feature that always fails, disable it with a clear explanation.
+function applyIntelMacRestrictions() {
+  const input = document.getElementById('remove-vocals');
+  const btn = document.getElementById('btn-remove-vocals');
+  input.disabled = true;
+  input.placeholder = 'Not available on Intel Macs';
+  btn.disabled = true;
+  document.getElementById('remove-vocals-unavailable').style.display = 'block';
+
+  // Don't offer to set up a feature that can't work here.
+  document.getElementById('welcome-vocals-offer').textContent =
+    'Note: "Remove Vocals" isn\'t available on Intel Macs — PyTorch and a Rust-based dependency it needs both dropped Intel Mac support. Everything else works normally.';
+  document.getElementById('welcome-setup-btn').style.display = 'none';
+}
+
 // ============ INIT ============
 async function initApp() {
   await initDownloadPath();
@@ -521,6 +539,8 @@ async function initApp() {
   if (folderDisplay) folderDisplay.textContent = `Download folder: ${downloadPath}`;
   loadHistory();
   checkForUpdatesOnInit();
+
+  if (window.api?.isIntelMac) applyIntelMacRestrictions();
 
   if (!localStorage.getItem('stroom-welcomed')) {
     document.getElementById('welcome-modal').style.display = 'flex';

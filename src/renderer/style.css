@@ -140,6 +140,7 @@ button {
 button:hover { background: #0077ed; }
 button:active { background: #0060c0; }
 button:disabled { background: #a1a1a6; cursor: not-allowed; }
+input:disabled, select:disabled { background: var(--progress-bg); color: var(--label); cursor: not-allowed; }
 
 .cancel-btn { background: #ff3b30; }
 .cancel-btn:hover { background: #ff453a; }
