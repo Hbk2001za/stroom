@@ -9,6 +9,22 @@ let splashWindow;
 let activeProcess = null;
 let isCancelled = false;
 
+// `pip install --user` on macOS's system/python.org Python (as opposed to
+// Homebrew's) installs console scripts into ~/Library/Python/<version>/bin
+// — a real, reproduced gap: this is where `pipx` itself can end up if it
+// was bootstrapped via the pip fallback (no Homebrew present), which then
+// meant nothing pipx-installed afterward (demucs included) could be found.
+function userPythonBinDirs(home) {
+  const base = path.join(home, 'Library', 'Python');
+  try {
+    return fs.readdirSync(base)
+      .map(v => path.join(base, v, 'bin'))
+      .filter(p => fs.existsSync(p));
+  } catch (e) {
+    return [];
+  }
+}
+
 // ── Fix PATH for GUI-launched apps ──────────────────
 // A double-clicked .app on macOS gets a bare PATH from launchd/LaunchServices
 // (no Homebrew, no ~/.local/bin), unlike a Terminal shell. Without this,
@@ -18,9 +34,10 @@ function fixPath() {
   if (process.platform === 'win32') return; // Windows PATH is inherited correctly already
   const home = os.homedir();
   const fallbackDirs = [
-    '/opt/homebrew/bin', '/opt/homebrew/sbin',
-    '/usr/local/bin', '/usr/local/sbin',
-    path.join(home, '.local/bin'),
+    '/opt/homebrew/bin', '/opt/homebrew/sbin', // Apple Silicon Homebrew
+    '/usr/local/bin', '/usr/local/sbin',        // Intel Homebrew
+    path.join(home, '.local/bin'),              // pipx default (also brew pipx)
+    ...userPythonBinDirs(home),                 // pip --user on macOS's system Python
     '/usr/bin', '/bin', '/usr/sbin', '/sbin'
   ];
 
@@ -229,7 +246,9 @@ ipcMain.handle('update-tools', async () => {
       : 'pip3 install --user pipx || pip install --user pipx || python3 -m pip install --user pipx || python -m pip install --user pipx');
     commands.push('pipx ensurepath');
   }
-  commands.push('pipx upgrade demucs || pipx install demucs');
+  // --force on the install fallback in case a previous attempt got killed
+  // mid-install (see the 10-minute timeout below) and left a partial venv.
+  commands.push('pipx upgrade demucs || pipx install demucs --force');
   // demucs imports numpy directly, but pipx's isolated venv doesn't always
   // pull it in as a transitive dependency — confirmed reproducible: demucs
   // installed via plain pip gets numpy as a side effect and works, but the
@@ -239,9 +258,19 @@ ipcMain.handle('update-tools', async () => {
 
   let output = '';
   for (const cmd of commands) {
+    // Re-fix PATH before each step: if a prior step just installed pipx for
+    // the first time (e.g. into ~/Library/Python/X.Y/bin), that directory
+    // didn't exist yet when fixPath() ran at app launch, so it wouldn't be
+    // picked up without re-checking now.
+    fixPath();
     try {
+      // demucs pulls in PyTorch (hundreds of MB) — a 60s timeout isn't
+      // remotely enough on a slower connection. Confirmed reproduced: the
+      // install was silently killed mid-way ("creating virtual
+      // environment... installing demucs..." then nothing), which then
+      // made the next step fail too since no venv existed to inject into.
       const result = await new Promise((resolve, reject) => {
-        exec(cmd, { timeout: 60000 }, (err, stdout, stderr) => {
+        exec(cmd, { timeout: 600000, maxBuffer: 1024 * 1024 * 10, env: process.env }, (err, stdout, stderr) => {
           resolve(stdout + stderr);
         });
       });

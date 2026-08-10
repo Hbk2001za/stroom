@@ -36,25 +36,38 @@ const batchQualityMap = {
   480: { video: '480', mp3: '128', spotify: '128' }
 };
 
+// Quality/bitrate is baked into the filename below. Without this, downloading
+// the same title at two different qualities produces the same output path —
+// yt-dlp/spotdl don't overwrite by default, so the second download silently
+// "succeeds" without actually writing a new file. --force-overwrites (yt-dlp)
+// and --overwrite force (spotdl) are added too, so re-downloading the exact
+// same title+quality on purpose refreshes the file instead of silently
+// skipping it.
 function buildCommand(type, url, quality) {
   const outDir = downloadPath || '~/Downloads';
   switch(type) {
-    case 'video':
+    case 'video': {
       const fmt = qualityMap[quality] || qualityMap.best;
-      return `yt-dlp -f "${fmt}" -o "${outDir}/%(title)s.%(ext)s" "${url}"`;
-    case 'mp3':
+      const label = (!quality || quality === 'best') ? 'Best' : `${quality}p`;
+      return `yt-dlp -f "${fmt}" --force-overwrites -o "${outDir}/%(title)s [${label}].%(ext)s" "${url}"`;
+    }
+    case 'mp3': {
       const br = bitrateMap[quality] || '320k';
-      return `yt-dlp -x --audio-format mp3 --audio-quality ${br} -o "${outDir}/%(title)s.mp3" "${url}"`;
-    case 'spotify-public':
+      const label = quality || '320';
+      return `yt-dlp -x --audio-format mp3 --audio-quality ${br} --force-overwrites -o "${outDir}/%(title)s [${label}kbps].mp3" "${url}"`;
+    }
+    case 'spotify-public': {
       const sbr = bitrateMap[quality] || '320k';
-      return `spotdl download "${url}" --bitrate ${sbr} --output "${outDir}"`;
+      const label = quality || '320';
+      return `spotdl download "${url}" --bitrate ${sbr} --overwrite force --output "${outDir}/{title} [${label}kbps]"`;
+    }
     case 'generic':
       if (quality === 'audio') {
-        return `yt-dlp -x --audio-format mp3 --audio-quality 0 -o "${outDir}/%(title)s.%(ext)s" "${url}"`;
+        return `yt-dlp -x --audio-format mp3 --audio-quality 0 --force-overwrites -o "${outDir}/%(title)s.%(ext)s" "${url}"`;
       }
-      return `yt-dlp -o "${outDir}/%(title)s.%(ext)s" "${url}"`;
+      return `yt-dlp --force-overwrites -o "${outDir}/%(title)s.%(ext)s" "${url}"`;
     default:
-      return `yt-dlp -x --audio-format mp3 -o "${outDir}/%(title)s.mp3" "${url}"`;
+      return `yt-dlp -x --audio-format mp3 --force-overwrites -o "${outDir}/%(title)s.mp3" "${url}"`;
   }
 }
 
