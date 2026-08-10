@@ -145,6 +145,12 @@ ipcMain.handle('update-tools', async () => {
     commands.push('pipx ensurepath');
   }
   commands.push('pipx upgrade demucs || pipx install demucs');
+  // demucs imports numpy directly, but pipx's isolated venv doesn't always
+  // pull it in as a transitive dependency — confirmed reproducible: demucs
+  // installed via plain pip gets numpy as a side effect and works, but the
+  // same version installed via pipx throws "ModuleNotFoundError: No module
+  // named 'numpy'" at runtime (exit 1) without this.
+  commands.push('pipx inject demucs numpy --force');
 
   let output = '';
   for (const cmd of commands) {
@@ -225,6 +231,15 @@ ipcMain.handle('cancel-command', async () => {
   return { success: false, message: 'No active download' };
 });
 
+// Pulls the last non-empty line out of a process's combined stdout+stderr —
+// for a Python traceback this is usually the actual exception message
+// (e.g. "ModuleNotFoundError: No module named 'numpy'"), which is far more
+// useful in the UI than a bare exit code.
+function lastLine(output) {
+  const lines = (output || '').split('\n').map(l => l.trim()).filter(Boolean);
+  return lines[lines.length - 1] || '(no output)';
+}
+
 // ── Remove vocals (download audio, then split with demucs) ──
 // Runs one child process at a time, tracked in the same `activeProcess`
 // variable the run-command/cancel-command handlers use, so the existing
@@ -266,7 +281,7 @@ ipcMain.handle('remove-vocals', async (event, { url, outDir }) => {
     );
     if (isCancelled) return { success: false, cancelled: true, message: 'Cancelled' };
     if (dl.error) return { success: false, message: `yt-dlp not found: ${dl.error.message}` };
-    if (dl.code !== 0) return { success: false, message: `Download failed (exit ${dl.code})` };
+    if (dl.code !== 0) return { success: false, message: `Download failed (exit ${dl.code}): ${lastLine(dl.stdout)}` };
 
     const lines = dl.stdout.split('\n').map(l => l.trim()).filter(Boolean);
     const audioFile = lines[lines.length - 1];
@@ -279,8 +294,8 @@ ipcMain.handle('remove-vocals', async (event, { url, outDir }) => {
       tmpDir, '🎤 '
     );
     if (isCancelled) return { success: false, cancelled: true, message: 'Cancelled' };
-    if (sep.error) return { success: false, message: 'demucs not found — install with: pip install -U demucs' };
-    if (sep.code !== 0) return { success: false, message: `Vocal separation failed (exit ${sep.code})` };
+    if (sep.error) return { success: false, message: 'demucs not found — click "🔧 Update Tools" to install it' };
+    if (sep.code !== 0) return { success: false, message: `Vocal separation failed (exit ${sep.code}): ${lastLine(sep.stdout)}` };
 
     // demucs produces both stems in one pass — save the instrumental and the
     // isolated vocals-only track, since the separation work is already done.
