@@ -2,6 +2,11 @@ const { contextBridge, ipcRenderer } = require('electron');
 let currentProgressListener = null;
 
 contextBridge.exposeInMainWorld('api', {
+  // Remove Vocals is a dead end on Intel Mac: both PyTorch and a Rust-based
+  // demucs dependency (sphn) dropped Intel Mac wheel support, and building
+  // either from source hits further failures. Not worth chasing further —
+  // hide/disable the feature there instead of a broken-looking retry loop.
+  isIntelMac: process.platform === 'darwin' && process.arch === 'x64',
   runCommand: (command, onProgress) => {
     if (currentProgressListener) {
       ipcRenderer.removeListener('download-progress', currentProgressListener);

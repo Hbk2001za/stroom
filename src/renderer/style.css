@@ -140,6 +140,7 @@ button {
 button:hover { background: #0077ed; }
 button:active { background: #0060c0; }
 button:disabled { background: #a1a1a6; cursor: not-allowed; }
+input:disabled, select:disabled { background: var(--progress-bg); color: var(--label); cursor: not-allowed; }
 
 /* A plain CSS-drawn stop-square instead of the ⏹ emoji glyph — emoji font
    rendering differs sharply by OS (Windows' Segoe UI Emoji draws a chunky,
@@ -465,6 +466,16 @@ body.dark #app-logo {
   color: #fff;
   font-size: 15px;
   padding: 2px 4px;
+}
+
+.report-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
 }
 
 .disclaimer {

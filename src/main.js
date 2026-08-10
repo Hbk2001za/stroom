@@ -234,6 +234,17 @@ ipcMain.handle('copy-to-clipboard', (event, text) => {
 // tool like demucs without hitting Homebrew Python's "externally-managed-
 // environment" (PEP 668) restriction.
 ipcMain.handle('update-tools', async () => {
+  // Remove Vocals is a confirmed dead end on Intel Mac — two separate
+  // upstream dependencies (PyTorch, then a Rust-based demucs dependency)
+  // both dropped Intel Mac support, and building either from source hits
+  // further failures. Not worth another 20-30 minute attempt; the
+  // Remove Vocals card is hidden/disabled for these users in the renderer,
+  // and Update Tools' only job is demucs setup, so just explain and stop
+  // here instead of running a doomed install.
+  if (process.platform === 'darwin' && process.arch === 'x64') {
+    return 'Remove Vocals isn\'t available on Intel Macs — PyTorch and a Rust-based demucs dependency both dropped Intel Mac support, with no working combination left via pip. This isn\'t fixable from Stroom\'s side.';
+  }
+
   const hasCmd = (probe) => { try { execSync(probe, { windowsHide: true }); return true; } catch (e) { return false; } };
   const hasBrew = hasCmd('which brew');
   const hasPipx = hasCmd(process.platform === 'win32' ? 'where pipx' : 'which pipx');
@@ -260,33 +271,15 @@ ipcMain.handle('update-tools', async () => {
       : 'pip3 install --user pipx || pip install --user pipx || python3 -m pip install --user pipx || python -m pip install --user pipx');
     commands.push(`${pipxCmd} ensurepath`);
   }
-  // Intel Mac dead end, confirmed via PyPI metadata: demucs pins
-  // torch<2.3 + numpy<2 specifically for darwin+x86_64, because PyTorch
-  // dropped Intel Mac wheels entirely after 2.2.2. numpy's last <2 release
-  // (1.26.4) only ships wheels up to Python 3.12 — none for 3.13+. So on
-  // an Intel Mac running a newer Python, pip is forced to build ancient
-  // numpy from source, which fails outright (numpy's legacy build needs
-  // distutils, removed in modern Python/setuptools). The only fix is
-  // installing demucs with an older, compatible Python if one exists.
-  const isIntelMac = process.platform === 'darwin' && process.arch === 'x64';
-  const compatiblePython = isIntelMac
-    ? ['python3.12', 'python3.11', 'python3.10', 'python3.9'].find(p => hasCmd(`which ${p}`))
-    : null;
-
-  if (isIntelMac && !compatiblePython) {
-    commands.push('echo "Remove Vocals needs Python 3.9-3.12 on Intel Macs (PyTorch dropped Intel Mac support after version 2.2, which needs an older numpy with no wheels for Python 3.13+). Run: brew install python@3.11 — then click Update Tools again."');
-  } else {
-    const pythonFlag = compatiblePython ? ` --python ${compatiblePython}` : '';
-    // --force on the install fallback in case a previous attempt got killed
-    // mid-install (see the 10-minute timeout below) and left a partial venv.
-    commands.push(`${pipxCmd} upgrade demucs || ${pipxCmd} install demucs --force${pythonFlag}`);
-    // demucs imports numpy directly, but pipx's isolated venv doesn't always
-    // pull it in as a transitive dependency — confirmed reproducible: demucs
-    // installed via plain pip gets numpy as a side effect and works, but the
-    // same version installed via pipx throws "ModuleNotFoundError: No module
-    // named 'numpy'" at runtime (exit 1) without this.
-    commands.push(`${pipxCmd} inject demucs numpy --force`);
-  }
+  // --force on the install fallback in case a previous attempt got killed
+  // mid-install (see the timeout below) and left a partial venv.
+  commands.push(`${pipxCmd} upgrade demucs || ${pipxCmd} install demucs --force`);
+  // demucs imports numpy directly, but pipx's isolated venv doesn't always
+  // pull it in as a transitive dependency — confirmed reproducible: demucs
+  // installed via plain pip gets numpy as a side effect and works, but the
+  // same version installed via pipx throws "ModuleNotFoundError: No module
+  // named 'numpy'" at runtime (exit 1) without this.
+  commands.push(`${pipxCmd} inject demucs numpy --force`);
 
   let output = '';
   for (const cmd of commands) {
@@ -301,8 +294,13 @@ ipcMain.handle('update-tools', async () => {
       // install was silently killed mid-way ("creating virtual
       // environment... installing demucs..." then nothing), which then
       // made the next step fail too since no venv existed to inject into.
+      // On Intel Mac, a from-source Rust/cargo compile of sphn+audiopus_sys
+      // (needed since that dependency also dropped Intel Mac wheels) can
+      // legitimately take even longer than the PyTorch download itself, so
+      // this needs real headroom — bumped to 20 minutes, with a bigger
+      // maxBuffer since cargo's build output is verbose.
       const result = await new Promise((resolve, reject) => {
-        exec(cmd, { timeout: 600000, maxBuffer: 1024 * 1024 * 10, env: process.env, windowsHide: true }, (err, stdout, stderr) => {
+        exec(cmd, { timeout: 1200000, maxBuffer: 1024 * 1024 * 50, env: process.env, windowsHide: true }, (err, stdout, stderr) => {
           resolve(stdout + stderr);
         });
       });

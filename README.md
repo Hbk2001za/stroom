@@ -43,10 +43,10 @@ The only exception is **`demucs`**, used solely by the "Remove Vocals"
 (Beta) feature, which still needs a one-time extra install since it
 depends on PyTorch (too large to bundle).
 
-**Easiest way:** open Stroom and click **"🔧 Update Tools"** at the
-bottom — it installs `pipx` (if needed) and `demucs` for you, including a
-fix for a real `pipx`-specific bug where `demucs` installs without `numpy`
-and crashes (this button injects it automatically).
+**On Apple Silicon Macs:** open Stroom and click **"🔧 Update Tools"** at
+the bottom — it installs `pipx` (if needed) and `demucs` for you,
+including a fix for a real `pipx`-specific bug where `demucs` installs
+without `numpy` and crashes (this button injects it automatically).
 
 Prefer doing it yourself in Terminal instead?
 ```bash
@@ -59,31 +59,14 @@ pipx inject demucs numpy --force
 `externally-managed-environment` error — that's expected, `pipx` is the
 right tool here.)
 
-#### ⚠️ Known issue: Remove Vocals on Intel Macs
+#### 🚫 Remove Vocals is not available on Intel Macs
 
-Remove Vocals may fail to install on **Intel Macs** (not Apple Silicon)
-running Python 3.13+, with an error mentioning `numpy<2` failing to build.
-This is an upstream dead end, not a Stroom bug: `demucs` requires an older
-PyTorch on Intel Mac specifically, because **PyTorch dropped Intel Mac
-support entirely after version 2.2.2** — and that older PyTorch requires
-an old `numpy` version that Apple/PyPI never built wheels for on Python
-3.13+. Building it from source then fails too, since numpy's legacy build
-system needs `distutils`, which modern Python removed.
-
-**Fix:** install demucs using an older Python (3.9–3.12) instead of
-whatever your Homebrew `python3` currently points at:
-```bash
-brew install python@3.11
-pipx install demucs --python python3.11
-pipx inject demucs numpy --force
-```
-Clicking **"🔧 Update Tools"** in the app does this automatically as of
-the current version — it detects an Intel Mac and looks for a compatible
-Python (3.12 → 3.11 → 3.10 → 3.9, whichever it finds first) rather than
-using the default. If none of those are installed, it'll tell you to run
-`brew install python@3.11` first.
-
-If Remove Vocals says it can't find demucs, that's what's missing.
+This is an upstream dead end, not a Stroom bug — two separate
+dependencies `demucs` needs (PyTorch, and a Rust-based audio library)
+have both dropped Intel Mac support, with no working combination left via
+pip. The Remove Vocals card is disabled automatically on Intel Macs with
+an explanation; every other feature (Video, MP3, Spotify, Any-Site) works
+normally regardless of chip.
 
 ---
 

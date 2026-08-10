@@ -117,7 +117,7 @@
       </div>
 
       <!-- Remove Vocals -->
-      <div class="card">
+      <div class="card" id="remove-vocals-card">
         <label>🎤 Remove Vocals from Song (URL) — Beta</label>
         <div class="row">
           <input type="text" id="remove-vocals" placeholder="Paste a YouTube or any supported URL...">
@@ -129,6 +129,9 @@
           <div class="progress-text" id="progress-text-remove-vocals"></div>
         </div>
         <span class="status" id="status-remove-vocals"></span>
+        <div id="remove-vocals-unavailable" class="disclaimer" style="display:none; margin-top:8px; text-align:left;">
+          🚫 Not available on Intel Macs — PyTorch and a Rust-based dependency demucs needs both dropped Intel Mac support, with no working combination left. This can't be fixed from Stroom's side.
+        </div>
       </div>
     </div>
 
@@ -188,6 +191,17 @@
 
   </div>
 
+  <!-- Setup Report Modal -->
+  <div id="report-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="report-modal-title">🔧 Setup Report</h3>
+        <button class="modal-close" onclick="closeReport()">✕</button>
+      </div>
+      <div class="modal-body"><pre id="report-modal-text" class="report-text"></pre></div>
+    </div>
+  </div>
+
   <!-- History Modal -->
   <div id="history-modal" class="modal" style="display:none;">
     <div class="modal-content">
@@ -222,10 +236,10 @@
       </div>
       <div class="modal-body">
         <p class="donate-message">Video, MP3, Spotify, and Any-Site downloads work immediately — no setup needed.</p>
-        <p class="donate-message">Want to also enable <strong>Remove Vocals</strong>? It needs a one-time extra install (demucs, ~2-5 min depending on your connection). You can always do this later via "🔧 Update Tools" at the bottom of the app.</p>
+        <p class="donate-message" id="welcome-vocals-offer">Want to also enable <strong>Remove Vocals</strong>? It needs a one-time extra install (demucs, ~2-5 min depending on your connection). You can always do this later via "🔧 Update Tools" at the bottom of the app.</p>
         <div class="row" style="margin-top:16px; justify-content:flex-end;">
           <button class="history-btn" onclick="closeWelcome()" style="flex:0 0 auto;">Maybe Later</button>
-          <button onclick="setupFromWelcome()" style="flex:0 0 auto;">Set Up Now</button>
+          <button id="welcome-setup-btn" onclick="setupFromWelcome()" style="flex:0 0 auto;">Set Up Now</button>
         </div>
       </div>
     </div>
