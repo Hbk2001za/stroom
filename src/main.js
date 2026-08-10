@@ -263,6 +263,15 @@ ipcMain.handle('update-tools', async () => {
     commands.push('echo "Remove Vocals needs Python 3.9-3.12 on Intel Macs (PyTorch dropped Intel Mac support after version 2.2, which needs an older numpy with no wheels for Python 3.13+). Run: brew install python@3.11 — then click Update Tools again."');
   } else {
     const pythonFlag = compatiblePython ? ` --python ${compatiblePython}` : '';
+    if (isIntelMac && hasBrew) {
+      // Second Intel Mac dead end, confirmed via PyPI metadata: `sphn` (a
+      // Rust-based demucs dependency) also dropped Intel Mac wheels after
+      // 0.1.4, and demucs requires sphn>=0.1.12 — no wheel exists at a
+      // version demucs will accept, so pip falls back to building sphn
+      // (and its own dependency audiopus_sys) from source, which needs
+      // Rust + the system opus library + pkg-config to succeed at all.
+      commands.push('brew install rust pkg-config opus');
+    }
     // --force on the install fallback in case a previous attempt got killed
     // mid-install (see the 10-minute timeout below) and left a partial venv.
     commands.push(`pipx upgrade demucs || pipx install demucs --force${pythonFlag}`);
