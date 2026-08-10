@@ -454,12 +454,55 @@ function setupFromWelcome() {
   runUpdateTools();
 }
 
+// ============ UPDATE CHECK ============
+let pendingUpdate = null;
+
+function dismissUpdateBanner() {
+  document.getElementById('update-banner').style.display = 'none';
+  if (pendingUpdate) sessionStorage.setItem('stroom-dismissed-update', pendingUpdate.latestVersion);
+}
+
+async function downloadUpdateNow() {
+  if (!pendingUpdate) return;
+  const btn = document.getElementById('update-banner-btn');
+  const original = btn.textContent;
+  btn.disabled = true;
+
+  const result = await window.api.downloadUpdate(
+    { downloadUrl: pendingUpdate.downloadUrl, assetName: pendingUpdate.assetName },
+    (data) => { if (data.progress !== undefined) btn.textContent = `Downloading... ${data.progress}%`; }
+  );
+
+  if (result.success) {
+    btn.textContent = 'Opening installer...';
+    setTimeout(() => { document.getElementById('update-banner').style.display = 'none'; }, 2000);
+  } else {
+    alert('❌ Update download failed: ' + result.message);
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
+async function checkForUpdatesOnInit() {
+  try {
+    const info = await window.api.checkForUpdates();
+    if (!info?.hasUpdate) return;
+    if (sessionStorage.getItem('stroom-dismissed-update') === info.latestVersion) return; // already dismissed this session
+
+    pendingUpdate = info;
+    document.getElementById('update-banner-text').textContent =
+      `🎉 Stroom ${info.latestVersion} is available (you have ${info.currentVersion})`;
+    document.getElementById('update-banner').style.display = 'flex';
+  } catch (e) { /* offline or GitHub unreachable — fail silently, not worth bothering the user */ }
+}
+
 // ============ INIT ============
 async function initApp() {
   await initDownloadPath();
   const folderDisplay = document.getElementById('current-folder-display');
   if (folderDisplay) folderDisplay.textContent = `Download folder: ${downloadPath}`;
   loadHistory();
+  checkForUpdatesOnInit();
 
   if (!localStorage.getItem('stroom-welcomed')) {
     document.getElementById('welcome-modal').style.display = 'flex';

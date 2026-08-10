@@ -23,8 +23,14 @@ STROOM — WINDOWS INSTALL INSTRUCTIONS
 
      - Install Python from https://www.python.org/downloads/
        (tick "Add python.exe to PATH" during install)
-     - Open Command Prompt and run: pip install -U demucs
-     - Sign out and back in (or restart your PC) so Stroom can see it
+     - Sign out and back in (or restart your PC) so Windows picks up
+       the PATH change
+     - Open Stroom and click "Update Tools" at the bottom of the app —
+       it installs everything needed automatically
+
+5. UPDATES — Stroom checks for new versions on launch and shows a
+   banner with a one-click "Download & Install" button when one's
+   available.
 
 RESPONSIBLE USE: you're responsible for having the rights/permission
 to download or edit any content. Please support artists and creators

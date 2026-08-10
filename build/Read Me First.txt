@@ -25,14 +25,12 @@ STROOM — INSTALL INSTRUCTIONS
 
    The one exception is "Remove Vocals" (Beta), which needs demucs
    installed separately since it depends on PyTorch (too large to
-   bundle). If you want that feature, open Terminal and run:
+   bundle). Easiest way: open Stroom and click "Update Tools" at the
+   bottom of the app — it installs everything needed automatically.
 
-     pipx install demucs
-
-   (plain "pip3 install demucs" will fail on modern Homebrew Python
-   with an "externally-managed-environment" error — that's expected,
-   pipx is the right tool here. No pipx yet? Run:
-   brew install pipx && pipx ensurepath   first.)
+5. UPDATES — Stroom checks for new versions on launch and shows a
+   banner with a one-click "Download & Install" button when one's
+   available.
 
 RESPONSIBLE USE: you're responsible for having the rights/permission
 to download or edit any content. Please support artists and creators

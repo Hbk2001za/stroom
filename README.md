@@ -40,16 +40,24 @@ None — `yt-dlp`, `ffmpeg`, and `spotdl` ship bundled inside the app, so
 video/MP3/Spotify/Any-Site downloads all work immediately, no setup needed.
 
 The only exception is **`demucs`**, used solely by the "Remove Vocals"
-(Beta) feature, which still needs a one-time manual install since it
-depends on PyTorch (too large to bundle):
+(Beta) feature, which still needs a one-time extra install since it
+depends on PyTorch (too large to bundle).
 
+**Easiest way:** open Stroom and click **"🔧 Update Tools"** at the
+bottom — it installs `pipx` (if needed) and `demucs` for you, including a
+fix for a real `pipx`-specific bug where `demucs` installs without `numpy`
+and crashes (this button injects it automatically).
+
+Prefer doing it yourself in Terminal instead?
 ```bash
+brew install pipx        # skip if you already have pipx
+pipx ensurepath
 pipx install demucs
+pipx inject demucs numpy --force
 ```
-
 (`pip3 install demucs` will fail on modern Homebrew Python with an
-`externally-managed-environment` error — that's expected, use `pipx`
-instead. If you don't have pipx yet: `brew install pipx && pipx ensurepath`.)
+`externally-managed-environment` error — that's expected, `pipx` is the
+right tool here.)
 
 If Remove Vocals says it can't find demucs, that's what's missing.
 
@@ -68,15 +76,24 @@ so video/MP3/Spotify/Any-Site downloads all work immediately, no setup
 needed.
 
 The only exception is **`demucs`**, used solely by the "Remove Vocals"
-(Beta) feature, which still needs a one-time manual install since it
-depends on PyTorch (too large to bundle):
+(Beta) feature, which still needs a one-time extra install since it
+depends on PyTorch (too large to bundle).
 
+**Easiest way:** open Stroom and click **"🔧 Update Tools"** at the
+bottom — it installs `pipx` (if needed) and `demucs` for you, including a
+fix for a real `pipx`-specific bug where `demucs` installs without `numpy`
+and crashes (this button injects it automatically). Needs
+[Python](https://www.python.org/downloads/) installed first (tick "Add
+python.exe to PATH" during its install, then sign out/in or restart
+before trying again).
+
+Prefer doing it yourself in Command Prompt instead?
 ```
-pip install -U demucs
+pip install --user pipx
+pipx ensurepath
+pipx install demucs
+pipx inject demucs numpy --force
 ```
-(needs [Python](https://www.python.org/downloads/) installed first — tick
-"Add python.exe to PATH" during its install, then sign out/in or restart
-before trying again)
 
 If Remove Vocals says it can't find demucs, that's what's missing.
 
@@ -97,6 +114,16 @@ install folder (typically `C:\Program Files\Stroom\resources\`).
 - 📜 Download history (view, export, clear)
 - ❤️ Support the project via BTC/BTC Lightning/ETH/SOL (Donate button in the app)
 - 🌙 Dark mode
+- 🔔 Checks for new versions on launch and offers a one-click download
+
+## Updating
+
+Stroom checks for a newer release on launch. If one's available, a banner
+appears at the top with a **"Download & Install"** button — it downloads
+the new installer and opens it for you automatically. You still need to
+complete the last step yourself (drag the app into Applications on macOS,
+or click through the installer on Windows) since Stroom isn't code-signed
+and can't silently replace itself the way signed apps can.
 
 ## License
 

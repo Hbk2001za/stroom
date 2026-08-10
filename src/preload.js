@@ -39,5 +39,16 @@ contextBridge.exposeInMainWorld('api', {
   chooseDownloadFolder: () => ipcRenderer.invoke('choose-download-folder'),
   openFolder: (p) => ipcRenderer.invoke('open-folder', p),
   copyText: (text) => ipcRenderer.invoke('copy-to-clipboard', text),
-  updateTools: () => ipcRenderer.invoke('update-tools')
+  updateTools: () => ipcRenderer.invoke('update-tools'),
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  downloadUpdate: (info, onProgress) => {
+    let listener = null;
+    if (onProgress) {
+      listener = (event, data) => onProgress(data);
+      ipcRenderer.on('update-download-progress', listener);
+    }
+    return ipcRenderer.invoke('download-update', info).finally(() => {
+      if (listener) ipcRenderer.removeListener('update-download-progress', listener);
+    });
+  }
 });

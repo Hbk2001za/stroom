@@ -62,6 +62,13 @@ function createSplashScreen() {
     backgroundColor: '#202D3C'
   });
   splashWindow.loadFile(path.join(__dirname, 'renderer', 'splash.html'));
+  splashWindow.webContents.on('did-finish-load', () => {
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.webContents.executeJavaScript(
+        `document.getElementById('splash-version').textContent = 'v${app.getVersion()}';`
+      );
+    }
+  });
 
   // Fade out after 2.5s
   setTimeout(() => {
@@ -99,7 +106,85 @@ function createMainWindow() {
   mainWindow.once('ready-to-show', () => { mainWindow.show(); });
 }
 
-app.whenReady().then(createSplashScreen);
+// ── Update check ─────────────────────────────────────
+// Kicked off the moment the splash screen appears (not on main-window
+// ready) so the network round-trip overlaps with the splash's ~3s display
+// time instead of adding a visible delay of its own. The renderer requests
+// the result later via check-for-updates, which just awaits this same
+// promise — by then it's usually already resolved.
+const REPO = 'Hbk2001za/stroom';
+let updateCheckPromise = null;
+
+function isNewerVersion(latest, current) {
+  const a = latest.replace(/^v/, '').split('.').map(Number);
+  const b = current.replace(/^v/, '').split('.').map(Number);
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const x = a[i] || 0, y = b[i] || 0;
+    if (x !== y) return x > y;
+  }
+  return false;
+}
+
+async function checkForUpdatesInternal() {
+  try {
+    const res = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`);
+    if (!res.ok) return { hasUpdate: false };
+    const release = await res.json();
+    const latestVersion = release.tag_name;
+    const current = app.getVersion();
+    if (!isNewerVersion(latestVersion, current)) return { hasUpdate: false };
+
+    const wantExt = process.platform === 'win32' ? '.exe' : '.dmg';
+    const asset = release.assets.find(a => a.name.toLowerCase().endsWith(wantExt));
+    if (!asset) return { hasUpdate: false };
+
+    return {
+      hasUpdate: true,
+      latestVersion,
+      currentVersion: current,
+      downloadUrl: asset.browser_download_url,
+      assetName: asset.name,
+      releaseUrl: release.html_url
+    };
+  } catch (e) {
+    return { hasUpdate: false };
+  }
+}
+
+ipcMain.handle('check-for-updates', async () => updateCheckPromise || checkForUpdatesInternal());
+
+ipcMain.handle('download-update', async (event, { downloadUrl, assetName }) => {
+  try {
+    const dest = path.join(app.getPath('temp'), assetName);
+    const res = await fetch(downloadUrl, { redirect: 'follow' });
+    if (!res.ok) return { success: false, message: `HTTP ${res.status}` };
+
+    const total = Number(res.headers.get('content-length')) || 0;
+    let received = 0;
+    const fileStream = fs.createWriteStream(dest);
+    for await (const chunk of res.body) {
+      received += chunk.length;
+      fileStream.write(chunk);
+      if (total && mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('update-download-progress', { progress: Math.round((received / total) * 100) });
+      }
+    }
+    await new Promise((resolve) => fileStream.end(resolve));
+
+    // Mac: mounts the DMG in Finder. Windows: launches the installer
+    // directly (same as double-clicking it) — SmartScreen will still show
+    // its warning since the exe is unsigned, that part can't be automated.
+    shell.openPath(dest);
+    return { success: true };
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+});
+
+app.whenReady().then(() => {
+  updateCheckPromise = checkForUpdatesInternal();
+  createSplashScreen();
+});
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createSplashScreen(); });
 

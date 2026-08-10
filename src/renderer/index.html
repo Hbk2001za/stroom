@@ -15,6 +15,15 @@
       <button class="dark-toggle" onclick="toggleDark()" title="Toggle dark mode">🌙</button>
     </div>
 
+    <!-- Update Banner -->
+    <div id="update-banner" class="update-banner" style="display:none;">
+      <span id="update-banner-text"></span>
+      <div class="update-banner-actions">
+        <button id="update-banner-btn" onclick="downloadUpdateNow()">Download &amp; Install</button>
+        <button class="modal-close" onclick="dismissUpdateBanner()" title="Dismiss">✕</button>
+      </div>
+    </div>
+
     <!-- Tabs -->
     <div class="tabs">
       <button class="tab active" onclick="switchTab('single')">🎯 Single URL</button>
