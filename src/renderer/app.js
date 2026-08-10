@@ -48,9 +48,11 @@ function buildCommand(type, url, quality) {
     case 'spotify-public':
       const sbr = bitrateMap[quality] || '320k';
       return `spotdl download "${url}" --bitrate ${sbr} --output "${outDir}"`;
-    case 'spotify-private':
-      const pbr = bitrateMap[quality] || '320k';
-      return `spotdl download "${url}" --user-auth --bitrate ${pbr} --output "${outDir}"`;
+    case 'generic':
+      if (quality === 'audio') {
+        return `yt-dlp -x --audio-format mp3 --audio-quality 0 -o "${outDir}/%(title)s.%(ext)s" "${url}"`;
+      }
+      return `yt-dlp -o "${outDir}/%(title)s.%(ext)s" "${url}"`;
     default:
       return `yt-dlp -x --audio-format mp3 -o "${outDir}/%(title)s.mp3" "${url}"`;
   }
@@ -151,10 +153,12 @@ async function download(inputId, type) {
   if (!url) { statusEl.textContent = 'Please paste a URL'; statusEl.className = 'status error'; return; }
   if (type.startsWith('spotify') && !url.includes('spotify.com/')) { statusEl.textContent = 'Please paste a valid Spotify URL'; statusEl.className = 'status error'; return; }
   if ((type === 'video' || type === 'mp3') && !url.includes('youtube.com/') && !url.includes('youtu.be/')) { statusEl.textContent = 'Please paste a valid YouTube URL'; statusEl.className = 'status error'; return; }
+  if (type === 'generic' && !url.startsWith('http')) { statusEl.textContent = 'Please paste a valid URL'; statusEl.className = 'status error'; return; }
+  if (type === 'remove-vocals' && !url.startsWith('http')) { statusEl.textContent = 'Please paste a valid URL'; statusEl.className = 'status error'; return; }
 
   currentDownloadId = inputId;
   setDownloadingUI(inputId, true);
-  statusEl.textContent = '⏳ Downloading...';
+  statusEl.textContent = type === 'remove-vocals' ? '⏳ Downloading & removing vocals...' : '⏳ Downloading...';
   statusEl.className = 'status';
   resetProgress(inputId);
   updateProgress(inputId, 5, 'Starting...');
@@ -162,14 +166,16 @@ async function download(inputId, type) {
   try {
     const qualityEl = document.getElementById(`quality-${inputId}`);
     const quality = qualityEl ? qualityEl.value : null;
-    const command = buildCommand(type, url, quality);
-    
-    const result = await window.api.runCommand(command, (data) => {
-      if (data.progress !== undefined) updateProgress(inputId, data.progress, data.text);
-    });
+    const onProgress = (data) => { if (data.progress !== undefined) updateProgress(inputId, data.progress, data.text); };
+
+    // Vocal removal is a two-step pipeline (download, then demucs separation),
+    // not a single shell command, so it has its own IPC call.
+    const result = type === 'remove-vocals'
+      ? await window.api.removeVocals(url, downloadPath, onProgress)
+      : await window.api.runCommand(buildCommand(type, url, quality), onProgress);
 
     if (result.success) {
-      statusEl.textContent = '✅ Done! Check your Downloads folder';
+      statusEl.textContent = type === 'remove-vocals' ? `✅ ${result.message}` : '✅ Done! Check your Downloads folder';
       statusEl.className = 'status success';
       updateProgress(inputId, 100, 'Complete!');
       addToHistory(url, type, quality);
@@ -287,9 +293,10 @@ function loadHistory() {
 }
 
 function addToHistory(url, type, quality) {
-  const typeLabels = { video: '🎬 Video', mp3: '🎵 MP3', 'spotify-public': '🟢 Spotify', 'spotify-private': '🔒 Spotify' };
+  const typeLabels = { video: '🎬 Video', mp3: '🎵 MP3', 'spotify-public': '🟢 Spotify', generic: '🌐 Any Site', 'remove-vocals': '🎤 Vocals Removed' };
   const qualLabels = { best: 'Best', 1080: '1080p', 720: '720p', 480: '480p', 360: '360p',
-                       320: '320kbps', 256: '256kbps', 192: '192kbps', 128: '128kbps' };
+                       320: '320kbps', 256: '256kbps', 192: '192kbps', 128: '128kbps',
+                       video: 'Video', audio: 'MP3' };
   history.unshift({
     url,
     type: typeLabels[type] || type,
@@ -303,6 +310,7 @@ function addToHistory(url, type, quality) {
 
 function renderHistory() {
   const list = document.getElementById('history-list');
+  if (!list) return; // inline list was removed; history now lives only in the "View All" modal
   const recent = history.slice(0, 3);
   if (recent.length === 0) {
     list.innerHTML = '<div style="color:var(--label);font-size:12px;text-align:center;padding:10px;">No downloads yet</div>';
@@ -363,6 +371,62 @@ function clearHistory() {
     localStorage.removeItem('stroom-history');
     renderHistory();
   }
+}
+
+// ============ DONATE ============
+const DONATE_ADDRESSES = [
+  { label: 'BTC', address: 'bc1qtkh0ejsge4u7tyc0jyy98lvh87xdjhmy22v44v', badgeClass: 'coin-btc', badgeText: '₿' },
+  { label: 'BTC Lightning', address: 'bc1qqpy3hkrx53nne2f7vfkygjrgsndspcf4ptaunw', badgeClass: 'coin-btcln', badgeText: '⚡' },
+  { label: 'ETH', address: '0x6f40624a25C570d77f4562F8d7b7E01497d27e9C', badgeClass: 'coin-eth', badgeText: 'Ξ' },
+  { label: 'SOL', address: 'EMAFsQreyWNM4pLisJysefv9RauvR2jiCpKEDbTVkpcp', badgeClass: 'coin-sol', badgeText: 'SOL' }
+];
+
+function openDonate() {
+  const list = document.getElementById('donate-list');
+  list.innerHTML = DONATE_ADDRESSES.map((a, i) => `
+    <div class="donate-item">
+      <div class="qr-box" id="qr-${i}"></div>
+      <div class="donate-info">
+        <div class="coin-label">${a.label}</div>
+        <button class="coin-address" onclick="copyAddress('${a.address}', this)" title="Click to copy">${a.address}</button>
+      </div>
+      <button class="copy-btn" onclick="copyAddress('${a.address}', this)">📋 Copy</button>
+    </div>
+  `).join('');
+
+  // High error-correction level so the center logo badge doesn't break scanning
+  DONATE_ADDRESSES.forEach((a, i) => {
+    const box = document.getElementById(`qr-${i}`);
+    new QRCode(box, {
+      text: a.address, width: 68, height: 68,
+      colorDark: '#000000', colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+    // QRCode() clears the element's contents, so the logo badge has to be
+    // re-appended after generation rather than rendered alongside it.
+    const badge = document.createElement('div');
+    badge.className = `qr-logo ${a.badgeClass}`;
+    badge.textContent = a.badgeText;
+    box.appendChild(badge);
+  });
+
+  document.getElementById('donate-modal').style.display = 'flex';
+}
+
+function closeDonate() {
+  document.getElementById('donate-modal').style.display = 'none';
+}
+
+async function copyAddress(address, btn) {
+  try {
+    await navigator.clipboard.writeText(address);
+  } catch (e) {
+    if (window.api?.copyText) await window.api.copyText(address);
+  }
+  const original = btn.textContent;
+  btn.textContent = '✅ Copied!';
+  btn.disabled = true;
+  setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 1500);
 }
 
 // ============ INIT ============

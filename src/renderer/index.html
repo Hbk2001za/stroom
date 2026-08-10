@@ -10,13 +10,10 @@
   <div class="container">
     
     <div class="header">
-      <img src="logo.svg" alt="Stroom" width="48" height="48">
-      <h1>Stroom</h1>
+      <button class="donate-toggle" onclick="openDonate()" title="Support Stroom">❤️ Donate</button>
+      <img id="app-logo" src="logo.png" alt="Stroom">
       <button class="dark-toggle" onclick="toggleDark()" title="Toggle dark mode">🌙</button>
     </div>
-
-    <!-- Drop Zone -->
-    <div id="drop-zone">📥 Drag & drop URLs here — or paste below</div>
 
     <!-- Tabs -->
     <div class="tabs">
@@ -72,7 +69,7 @@
 
       <!-- Spotify -->
       <div class="card">
-        <label>🟢 Spotify Song or Playlist (Public)</label>
+        <label>🟢 Spotify Song or Playlist</label>
         <div class="row">
           <input type="text" id="spotify-public" placeholder="https://open.spotify.com/track/... or /playlist/...">
           <select id="quality-spotify-public">
@@ -91,29 +88,45 @@
         <span class="status" id="status-spotify-public"></span>
       </div>
 
+      <!-- Generic / Any-Site -->
       <div class="card">
-        <label>🔒 Spotify Song or Playlist (Private)</label>
+        <label>🌐 Any Site URL (TikTok, Instagram, X, SoundCloud, etc.) — Beta</label>
         <div class="row">
-          <input type="text" id="spotify-private" placeholder="https://open.spotify.com/track/... or /playlist/...">
-          <select id="quality-spotify-private">
-            <option value="320">320kbps</option>
-            <option value="256">256kbps</option>
-            <option value="192">192kbps</option>
-            <option value="128">128kbps</option>
+          <input type="text" id="generic-url" placeholder="Paste any link yt-dlp supports...">
+          <select id="quality-generic-url">
+            <option value="video">Video</option>
+            <option value="audio">Audio (MP3)</option>
           </select>
-          <button id="btn-spotify-private" onclick="download('spotify-private', 'spotify-private')">Download</button>
-          <button class="cancel-btn" id="cancel-spotify-private" onclick="cancelDownload('spotify-private')" style="display:none;">⏹</button>
+          <button id="btn-generic-url" onclick="download('generic-url', 'generic')">Download</button>
+          <button class="cancel-btn" id="cancel-generic-url" onclick="cancelDownload('generic-url')" style="display:none;">⏹</button>
         </div>
-        <div class="progress-container" id="progress-spotify-private">
-          <div class="progress-bar"><div class="progress-fill" id="fill-spotify-private"></div></div>
-          <div class="progress-text" id="progress-text-spotify-private"></div>
+        <div class="progress-container" id="progress-generic-url">
+          <div class="progress-bar"><div class="progress-fill" id="fill-generic-url"></div></div>
+          <div class="progress-text" id="progress-text-generic-url"></div>
         </div>
-        <span class="status" id="status-spotify-private"></span>
+        <span class="status" id="status-generic-url"></span>
+      </div>
+
+      <!-- Remove Vocals -->
+      <div class="card">
+        <label>🎤 Remove Vocals from Song (URL) — Beta</label>
+        <div class="row">
+          <input type="text" id="remove-vocals" placeholder="Paste a YouTube or any supported URL...">
+          <button id="btn-remove-vocals" onclick="download('remove-vocals', 'remove-vocals')">Remove Vocals</button>
+          <button class="cancel-btn" id="cancel-remove-vocals" onclick="cancelDownload('remove-vocals')" style="display:none;">⏹</button>
+        </div>
+        <div class="progress-container" id="progress-remove-vocals">
+          <div class="progress-bar"><div class="progress-fill" id="fill-remove-vocals"></div></div>
+          <div class="progress-text" id="progress-text-remove-vocals"></div>
+        </div>
+        <span class="status" id="status-remove-vocals"></span>
       </div>
     </div>
 
     <!-- Batch Tab -->
     <div id="tab-batch" class="tab-content">
+      <!-- Drop Zone -->
+      <div id="drop-zone">📥 Drag & drop URLs here — or paste below</div>
       <div class="card">
         <label>📋 Paste multiple URLs (one per line — don't mix YouTube and Spotify)</label>
         <textarea id="batch-urls" placeholder="https://www.youtube.com/watch?v=...&#10;https://www.youtube.com/watch?v=...&#10;https://www.youtube.com/watch?v=..."></textarea>
@@ -121,8 +134,7 @@
           <select id="batch-type">
             <option value="mp3">YouTube → MP3</option>
             <option value="video">YouTube → Video</option>
-            <option value="spotify-public">Spotify Public</option>
-            <option value="spotify-private">Spotify Private</option>
+            <option value="spotify-public">Spotify</option>
           </select>
           <select id="quality-batch">
             <option value="best">Best/320kbps</option>
@@ -151,9 +163,6 @@
           <button class="clear-btn" onclick="clearHistory()">Clear</button>
         </div>
       </div>
-      <div class="history-list" id="history-list">
-        <div style="color:var(--label);font-size:12px;text-align:center;padding:10px;">No downloads yet</div>
-      </div>
     </div>
 
     <!-- Folder & Update Buttons -->
@@ -177,6 +186,21 @@
     </div>
   </div>
 
+  <!-- Donate Modal -->
+  <div id="donate-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>❤️ Support Stroom</h3>
+        <button class="modal-close" onclick="closeDonate()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="donate-message">If Stroom has been useful to you, consider chipping in — it genuinely helps keep this project going. Thank you! 🙏</p>
+        <div id="donate-list" class="donate-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="vendor/qrcode.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

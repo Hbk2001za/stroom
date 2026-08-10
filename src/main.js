@@ -1,6 +1,8 @@
-const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, dialog, clipboard } = require('electron');
 const path = require('path');
-const { spawn, exec } = require('child_process');
+const fs = require('fs');
+const os = require('os');
+const { spawn, exec, execSync } = require('child_process');
 
 let mainWindow;
 let splashWindow;
@@ -16,7 +18,7 @@ function createSplashScreen() {
     transparent: false,
     alwaysOnTop: true,
     resizable: false,
-    backgroundColor: '#000000'
+    backgroundColor: '#202D3C'
   });
   splashWindow.loadFile(path.join(__dirname, 'renderer', 'splash.html'));
 
@@ -38,11 +40,11 @@ function createSplashScreen() {
 // ── Main window ────────────────────────────────────
 function createMainWindow() {
   mainWindow = new BrowserWindow({
-    width: 640,
-    height: 750,
+    width: 680,
+    height: 900,
     resizable: true,
     minWidth: 580,
-    minHeight: 650,
+    minHeight: 780,
     title: 'Stroom',
     show: false,
     webPreferences: {
@@ -74,6 +76,10 @@ ipcMain.handle('choose-download-folder', async () => {
 
 ipcMain.handle('open-folder', async (event, folderPath) => {
   shell.openPath(folderPath);
+});
+
+ipcMain.handle('copy-to-clipboard', (event, text) => {
+  clipboard.writeText(text);
 });
 
 // ── Auto‑update tools ──────────────────────────────
@@ -111,10 +117,12 @@ function parseProgress(line) {
 }
 
 ipcMain.handle('run-command', async (event, command) => {
-  if (activeProcess) { activeProcess.kill('SIGTERM'); activeProcess = null; }
+  if (activeProcess) { try { process.kill(-activeProcess.pid, 'SIGTERM'); } catch(e) { activeProcess.kill('SIGTERM'); } activeProcess = null; }
   isCancelled = false;
   return new Promise((resolve) => {
-    activeProcess = spawn(command, { shell: true, cwd: app.getPath('downloads') });
+    // detached so the shell gets its own process group — lets cancel-command
+    // kill the whole tree (yt-dlp/ffmpeg/spotdl), not just the shell wrapper.
+    activeProcess = spawn(command, { shell: true, cwd: app.getPath('downloads'), detached: true });
     activeProcess.stderr.on('data', (data) => {
       for (const line of data.toString().split('\n')) {
         const p = parseProgress(line);
@@ -144,4 +152,83 @@ ipcMain.handle('cancel-command', async () => {
     activeProcess = null; return { success: true };
   }
   return { success: false, message: 'No active download' };
+});
+
+// ── Remove vocals (download audio, then split with demucs) ──
+// Runs one child process at a time, tracked in the same `activeProcess`
+// variable the run-command/cancel-command handlers use, so the existing
+// cancel button works here too without any extra plumbing.
+function runStep(cmd, args, cwd, progressPrefix) {
+  return new Promise((resolve) => {
+    activeProcess = spawn(cmd, args, { cwd, detached: true });
+    let stdout = '';
+    const onData = (data) => {
+      const text = data.toString();
+      stdout += text;
+      for (const line of text.split('\n')) {
+        const p = parseProgress(line);
+        if (p && mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('download-progress', { progress: p.progress, text: progressPrefix + p.text });
+        }
+      }
+    };
+    activeProcess.stdout.on('data', onData);
+    activeProcess.stderr.on('data', onData);
+    activeProcess.on('close', (code) => { activeProcess = null; resolve({ code, stdout }); });
+    activeProcess.on('error', (err) => { activeProcess = null; resolve({ code: -1, error: err }); });
+  });
+}
+
+ipcMain.handle('remove-vocals', async (event, { url, outDir }) => {
+  if (activeProcess) { try { process.kill(-activeProcess.pid, 'SIGTERM'); } catch(e) { activeProcess.kill('SIGTERM'); } activeProcess = null; }
+  isCancelled = false;
+  const dest = outDir || app.getPath('downloads');
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'stroom-vocals-'));
+
+  try {
+    // Step 1: download audio via yt-dlp. --print after_move:filepath prints the
+    // final file path once post-processing (the mp3 conversion) is done.
+    const dl = await runStep(
+      'yt-dlp',
+      ['-x', '--audio-format', 'mp3', '--print', 'after_move:filepath', '-o', path.join(tmpDir, '%(title)s.%(ext)s'), url],
+      tmpDir, '⬇️ '
+    );
+    if (isCancelled) return { success: false, cancelled: true, message: 'Cancelled' };
+    if (dl.error) return { success: false, message: `yt-dlp not found: ${dl.error.message}` };
+    if (dl.code !== 0) return { success: false, message: `Download failed (exit ${dl.code})` };
+
+    const lines = dl.stdout.split('\n').map(l => l.trim()).filter(Boolean);
+    const audioFile = lines[lines.length - 1];
+    if (!audioFile || !fs.existsSync(audioFile)) return { success: false, message: 'Could not locate downloaded audio file' };
+
+    // Step 2: split vocals from instrumental with demucs.
+    const sep = await runStep(
+      'demucs',
+      ['--two-stems=vocals', '--mp3', '-o', path.join(tmpDir, 'separated'), audioFile],
+      tmpDir, '🎤 '
+    );
+    if (isCancelled) return { success: false, cancelled: true, message: 'Cancelled' };
+    if (sep.error) return { success: false, message: 'demucs not found — install with: pip install -U demucs' };
+    if (sep.code !== 0) return { success: false, message: `Vocal separation failed (exit ${sep.code})` };
+
+    // demucs produces both stems in one pass — save the instrumental and the
+    // isolated vocals-only track, since the separation work is already done.
+    const base = path.basename(audioFile, path.extname(audioFile));
+    const stemDir = path.join(tmpDir, 'separated', 'htdemucs', base);
+    const instrumentalSrc = path.join(stemDir, 'no_vocals.mp3');
+    const vocalsSrc = path.join(stemDir, 'vocals.mp3');
+    if (!fs.existsSync(instrumentalSrc)) return { success: false, message: 'Instrumental output not found' };
+
+    fs.copyFileSync(instrumentalSrc, path.join(dest, `${base} (Instrumental).mp3`));
+    let message = 'Done! Saved instrumental';
+    if (fs.existsSync(vocalsSrc)) {
+      fs.copyFileSync(vocalsSrc, path.join(dest, `${base} (Vocals Only).mp3`));
+      message += ' + vocals-only';
+    }
+    return { success: true, message: `${message} to your Downloads folder` };
+  } catch (err) {
+    return { success: false, message: err.message };
+  } finally {
+    fs.rm(tmpDir, { recursive: true, force: true }, () => {});
+  }
 });

@@ -42,25 +42,43 @@ body {
 
 /* Header */
 .header {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
   margin-bottom: 16px;
 }
 
-.header h1 { font-size: 22px; font-weight: 600; }
-
 .dark-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
   background: var(--card-bg);
   border: 1px solid var(--input-border);
-  border-radius: 20px;
-  padding: 6px 12px;
+  border-radius: 14px;
+  padding: 3px 7px;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 11px;
   color: var(--text);
   transition: background 0.2s;
 }
+
+.donate-toggle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 14px;
+  padding: 3px 10px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  color: #ff3b30;
+  transition: background 0.2s;
+}
+
+.donate-toggle:hover { background: var(--history-hover); }
 
 .dark-toggle:hover { background: var(--history-hover); }
 
@@ -204,7 +222,8 @@ select { max-width: 110px; }
 .clear-btn {
   background: transparent;
   color: #ff3b30;
-  font-size: 12px;
+  border: 1px solid #ff3b30;
+  font-size: 11px;
   padding: 4px 10px;
 }
 
@@ -359,12 +378,18 @@ select { max-width: 110px; }
   margin-bottom: 4px;
 }
 
-/* App logo styling for dark mode */
+/* App logo */
 #app-logo {
+  height: 70px;
+  width: auto;
+  display: block;
   transition: filter 0.3s;
 }
-#app-logo:hover {
-  filter: drop-shadow(0 0 12px rgba(255,255,255,0.5));
+
+/* logo artwork is dark navy/black on transparent — render as a white
+   silhouette in dark mode so it stays legible against dark cards */
+body.dark #app-logo {
+  filter: brightness(0) invert(1);
 }
 
 .folder-row {
@@ -381,3 +406,100 @@ select { max-width: 110px; }
   margin-top: 4px;
   text-align: center;
 }
+
+/* Donate modal */
+.donate-message {
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
+.donate-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.donate-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--history-bg);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.donate-item .qr-box {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  flex: 0 0 76px;
+  background: #fff;
+  border-radius: 6px;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.donate-item .qr-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  box-shadow: 0 0 0 2px #fff;
+  line-height: 1;
+}
+
+.qr-logo.coin-btc { background: #f7931a; }
+.qr-logo.coin-btcln { background: #792ee5; font-size: 12px; }
+.qr-logo.coin-eth { background: #627eea; }
+.qr-logo.coin-sol { background: linear-gradient(135deg, #9945ff, #14f195); font-size: 10px; }
+
+.donate-item .donate-info { flex: 1; min-width: 0; }
+
+.donate-item .coin-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--label);
+  margin-bottom: 3px;
+}
+
+.donate-item .coin-address {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--text);
+  background: var(--card-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  transition: border-color 0.2s;
+}
+
+.donate-item .coin-address:hover { border-color: var(--input-focus); }
+
+.donate-item .copy-btn {
+  flex: 0 0 auto;
+  background: var(--card-bg);
+  color: var(--text);
+  border: 1px solid var(--input-border);
+  font-size: 11px;
+  padding: 5px 8px;
+}
+
+.donate-item .copy-btn:hover { background: var(--history-hover); }
