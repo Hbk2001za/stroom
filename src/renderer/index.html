@@ -169,7 +169,7 @@
     <div class="folder-row">
       <button class="folder-btn" onclick="chooseDownloadFolder()">📁 Choose Download Folder</button>
       <button class="folder-btn" onclick="openDownloadsFolder()">📂 Open Downloads Folder</button>
-      <button class="folder-btn" id="update-tools-btn">🔧 Update Tools</button>
+      <button class="folder-btn" id="update-tools-btn" title="Installs/updates demucs (needed for Remove Vocals) — pipx is installed automatically if missing">🔧 Update Tools</button>
     </div>
     <div id="current-folder-display" class="folder-path"></div>
 
@@ -200,6 +200,24 @@
       <div class="modal-body">
         <p class="donate-message">If Stroom has been useful to you, consider chipping in — it genuinely helps keep this project going. Thank you! 🙏</p>
         <div id="donate-list" class="donate-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Welcome / First-Run Modal -->
+  <div id="welcome-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>👋 Welcome to Stroom</h3>
+        <button class="modal-close" onclick="closeWelcome()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="donate-message">Video, MP3, Spotify, and Any-Site downloads work immediately — no setup needed.</p>
+        <p class="donate-message">Want to also enable <strong>Remove Vocals</strong>? It needs a one-time extra install (demucs, ~2-5 min depending on your connection). You can always do this later via "🔧 Update Tools" at the bottom of the app.</p>
+        <div class="row" style="margin-top:16px; justify-content:flex-end;">
+          <button class="history-btn" onclick="closeWelcome()" style="flex:0 0 auto;">Maybe Later</button>
+          <button onclick="setupFromWelcome()" style="flex:0 0 auto;">Set Up Now</button>
+        </div>
       </div>
     </div>
   </div>

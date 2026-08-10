@@ -429,23 +429,41 @@ async function copyAddress(address, btn) {
   setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 1500);
 }
 
+// ============ UPDATE TOOLS (sets up demucs for Remove Vocals) ============
+async function runUpdateTools() {
+  const btn = document.getElementById('update-tools-btn');
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Setting up...';
+  const result = await window.api.updateTools();
+  alert('✅ Setup report:\n\n' + result);
+  btn.disabled = false;
+  btn.textContent = original;
+}
+
+document.getElementById('update-tools-btn')?.addEventListener('click', runUpdateTools);
+
+// ============ WELCOME / FIRST-RUN ============
+function closeWelcome() {
+  document.getElementById('welcome-modal').style.display = 'none';
+  localStorage.setItem('stroom-welcomed', 'true');
+}
+
+function setupFromWelcome() {
+  closeWelcome();
+  runUpdateTools();
+}
+
 // ============ INIT ============
 async function initApp() {
   await initDownloadPath();
   const folderDisplay = document.getElementById('current-folder-display');
   if (folderDisplay) folderDisplay.textContent = `Download folder: ${downloadPath}`;
   loadHistory();
-}
 
-// Update tools button
-document.getElementById('update-tools-btn')?.addEventListener('click', async () => {
-  const btn = document.getElementById('update-tools-btn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Updating...';
-  const result = await window.api.updateTools();
-  alert('✅ Update report:\n\n' + result);
-  btn.disabled = false;
-  btn.textContent = '🔧 Update Tools';
-});
+  if (!localStorage.getItem('stroom-welcomed')) {
+    document.getElementById('welcome-modal').style.display = 'flex';
+  }
+}
 
 initApp();

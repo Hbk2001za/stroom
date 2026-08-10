@@ -124,13 +124,22 @@ ipcMain.handle('copy-to-clipboard', (event, text) => {
 });
 
 // ── Auto‑update tools ──────────────────────────────
+// yt-dlp/ffmpeg/spotdl ship bundled with the app now, so this button's real
+// job is setting up demucs (Remove Vocals) — the one tool we can't bundle
+// because of its PyTorch dependency. pipx is the right way to install a CLI
+// tool like demucs without hitting Homebrew Python's "externally-managed-
+// environment" (PEP 668) restriction.
 ipcMain.handle('update-tools', async () => {
+  const hasCmd = (probe) => { try { execSync(probe); return true; } catch (e) { return false; } };
+  const hasBrew = hasCmd('which brew');
+  const hasPipx = hasCmd(process.platform === 'win32' ? 'where pipx' : 'which pipx');
+
   const commands = [];
-  // Detect package managers
-  try { execSync('which brew'); commands.push('brew upgrade yt-dlp ffmpeg'); } catch(e) { /* no brew */ }
-  commands.push('pipx upgrade spotdl');
-  // Fallback: also try pip if spotdl is not installed via pipx
-  commands.push('pip install --upgrade spotdl 2>/dev/null || true');
+  if (!hasPipx) {
+    commands.push(hasBrew ? 'brew install pipx' : 'pip3 install --user pipx');
+    commands.push('pipx ensurepath');
+  }
+  commands.push('pipx upgrade demucs || pipx install demucs');
 
   let output = '';
   for (const cmd of commands) {
