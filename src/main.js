@@ -136,7 +136,12 @@ ipcMain.handle('update-tools', async () => {
 
   const commands = [];
   if (!hasPipx) {
-    commands.push(hasBrew ? 'brew install pipx' : 'pip3 install --user pipx');
+    // "pip3" isn't guaranteed on Windows (python.org's installer may only
+    // provide "pip" or "python -m pip" depending on version/options), so
+    // try the plausible invocations in order rather than assume one exists.
+    commands.push(hasBrew
+      ? 'brew install pipx'
+      : 'pip3 install --user pipx || pip install --user pipx || python3 -m pip install --user pipx || python -m pip install --user pipx');
     commands.push('pipx ensurepath');
   }
   commands.push('pipx upgrade demucs || pipx install demucs');
