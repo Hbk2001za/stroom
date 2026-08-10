@@ -1,6 +1,6 @@
 {
   "name": "stroom",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Download YouTube videos, MP3s, and Spotify playlists",
   "main": "src/main.js",
   "scripts": {
@@ -32,17 +32,40 @@
       ],
       "icon": "build/logo.icns",
       "extraResources": [
-        { "from": "build/bin/mac/yt-dlp", "to": "bin/yt-dlp" },
-        { "from": "build/bin/mac/ffmpeg", "to": "bin/ffmpeg" },
-        { "from": "build/bin/mac/spotdl", "to": "bin/spotdl" }
+        {
+          "from": "build/bin/mac/yt-dlp",
+          "to": "bin/yt-dlp"
+        },
+        {
+          "from": "build/bin/mac/ffmpeg",
+          "to": "bin/ffmpeg"
+        },
+        {
+          "from": "build/bin/mac/spotdl",
+          "to": "bin/spotdl"
+        }
       ],
       "x64ArchFiles": "Contents/Resources/bin/**"
     },
     "dmg": {
       "contents": [
-        { "x": 130, "y": 220, "type": "file" },
-        { "x": 410, "y": 220, "type": "link", "path": "/Applications" },
-        { "x": 270, "y": 60, "type": "file", "path": "build/Read Me First.txt" }
+        {
+          "x": 130,
+          "y": 220,
+          "type": "file"
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        },
+        {
+          "x": 270,
+          "y": 60,
+          "type": "file",
+          "path": "build/Read Me First.txt"
+        }
       ]
     },
     "win": {
@@ -56,10 +79,22 @@
       ],
       "icon": "build/logo.ico",
       "extraResources": [
-        { "from": "build/Windows Read Me First.txt", "to": "Windows Read Me First.txt" },
-        { "from": "build/bin/win/yt-dlp.exe", "to": "bin/yt-dlp.exe" },
-        { "from": "build/bin/win/ffmpeg.exe", "to": "bin/ffmpeg.exe" },
-        { "from": "build/bin/win/spotdl.exe", "to": "bin/spotdl.exe" }
+        {
+          "from": "build/Windows Read Me First.txt",
+          "to": "Windows Read Me First.txt"
+        },
+        {
+          "from": "build/bin/win/yt-dlp.exe",
+          "to": "bin/yt-dlp.exe"
+        },
+        {
+          "from": "build/bin/win/ffmpeg.exe",
+          "to": "bin/ffmpeg.exe"
+        },
+        {
+          "from": "build/bin/win/spotdl.exe",
+          "to": "bin/spotdl.exe"
+        }
       ]
     },
     "nsis": {
