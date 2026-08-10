@@ -1,0 +1,33 @@
+STROOM — INSTALL INSTRUCTIONS
+==============================
+
+1. Drag Stroom into the Applications folder (in this window).
+
+2. FIRST LAUNCH — macOS will block the app the first time, because it
+   isn't signed with a paid Apple Developer certificate. To open it:
+
+     - Go to System Settings -> Privacy & Security
+     - Scroll down, you'll see a message that Stroom was blocked
+     - Click "Open Anyway"
+     - Open Stroom again and click "Open" to confirm
+
+   You only need to do this once.
+
+3. FOLDER ACCESS PROMPTS — the first time you download something (and
+   the first time you use "Choose Download Folder" / "Open Downloads
+   Folder"), macOS will ask permission to access that folder. Click
+   Allow/OK — this is normal macOS security, not a bug, and it won't
+   ask again once granted.
+
+4. REQUIRED TOOLS — Stroom needs a few free command-line tools
+   installed to actually download/convert files. If you haven't
+   already, open Terminal and run:
+
+     brew install yt-dlp ffmpeg
+     pipx install spotdl
+     pip3 install -U demucs      (optional, only for Remove Vocals)
+
+   Don't have Homebrew? Install it first from https://brew.sh
+
+Full documentation and updates:
+https://github.com/Hbk2001za/stroom
