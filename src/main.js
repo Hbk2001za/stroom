@@ -76,7 +76,8 @@ function createSplashScreen() {
     transparent: false,
     alwaysOnTop: true,
     resizable: false,
-    backgroundColor: '#202D3C'
+    backgroundColor: '#202D3C',
+    icon: path.join(__dirname, '..', 'build', 'logo.ico')
   });
   splashWindow.loadFile(path.join(__dirname, 'renderer', 'splash.html'));
   splashWindow.webContents.on('did-finish-load', () => {
@@ -112,6 +113,7 @@ function createMainWindow() {
     minHeight: 780,
     title: 'Stroom',
     show: false,
+    icon: path.join(__dirname, '..', 'build', 'logo.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -232,9 +234,21 @@ ipcMain.handle('copy-to-clipboard', (event, text) => {
 // tool like demucs without hitting Homebrew Python's "externally-managed-
 // environment" (PEP 668) restriction.
 ipcMain.handle('update-tools', async () => {
-  const hasCmd = (probe) => { try { execSync(probe); return true; } catch (e) { return false; } };
+  const hasCmd = (probe) => { try { execSync(probe, { windowsHide: true }); return true; } catch (e) { return false; } };
   const hasBrew = hasCmd('which brew');
   const hasPipx = hasCmd(process.platform === 'win32' ? 'where pipx' : 'which pipx');
+
+  // If we have to install pipx ourselves below (`pip install --user pipx`),
+  // it lands in the user's Python Scripts directory, which is often not on
+  // PATH within *this already-running* process even after install — Windows
+  // doesn't propagate a PATH change into a process that's already open, so
+  // a bare `pipx ...` call right after installing it reliably fails with
+  // "not recognized" (reproduced: exactly the 3 subsequent pipx commands
+  // below). `python -m pipx` sidesteps PATH entirely since it only needs
+  // pipx to be import-able, so use that instead whenever we just installed it.
+  const pyCandidates = process.platform === 'win32' ? ['py -3', 'python', 'python3'] : ['python3', 'python'];
+  const pyCmd = pyCandidates.find(c => hasCmd(`${c} --version`));
+  const pipxCmd = hasPipx ? 'pipx' : (pyCmd ? `${pyCmd} -m pipx` : 'pipx');
 
   const commands = [];
   if (!hasPipx) {
@@ -244,7 +258,7 @@ ipcMain.handle('update-tools', async () => {
     commands.push(hasBrew
       ? 'brew install pipx'
       : 'pip3 install --user pipx || pip install --user pipx || python3 -m pip install --user pipx || python -m pip install --user pipx');
-    commands.push('pipx ensurepath');
+    commands.push(`${pipxCmd} ensurepath`);
   }
   // Intel Mac dead end, confirmed via PyPI metadata: demucs pins
   // torch<2.3 + numpy<2 specifically for darwin+x86_64, because PyTorch
@@ -265,13 +279,13 @@ ipcMain.handle('update-tools', async () => {
     const pythonFlag = compatiblePython ? ` --python ${compatiblePython}` : '';
     // --force on the install fallback in case a previous attempt got killed
     // mid-install (see the 10-minute timeout below) and left a partial venv.
-    commands.push(`pipx upgrade demucs || pipx install demucs --force${pythonFlag}`);
+    commands.push(`${pipxCmd} upgrade demucs || ${pipxCmd} install demucs --force${pythonFlag}`);
     // demucs imports numpy directly, but pipx's isolated venv doesn't always
     // pull it in as a transitive dependency — confirmed reproducible: demucs
     // installed via plain pip gets numpy as a side effect and works, but the
     // same version installed via pipx throws "ModuleNotFoundError: No module
     // named 'numpy'" at runtime (exit 1) without this.
-    commands.push('pipx inject demucs numpy --force');
+    commands.push(`${pipxCmd} inject demucs numpy --force`);
   }
 
   let output = '';
@@ -288,7 +302,7 @@ ipcMain.handle('update-tools', async () => {
       // environment... installing demucs..." then nothing), which then
       // made the next step fail too since no venv existed to inject into.
       const result = await new Promise((resolve, reject) => {
-        exec(cmd, { timeout: 600000, maxBuffer: 1024 * 1024 * 10, env: process.env }, (err, stdout, stderr) => {
+        exec(cmd, { timeout: 600000, maxBuffer: 1024 * 1024 * 10, env: process.env, windowsHide: true }, (err, stdout, stderr) => {
           resolve(stdout + stderr);
         });
       });
@@ -325,13 +339,35 @@ function prepareCommand(command) {
   return command;
 }
 
+// Killing the whole process tree (yt-dlp/ffmpeg/spotdl/demucs, not just the
+// shell wrapper) needs a platform split:
+//  - POSIX: spawn with detached:true (own process group) and signal the
+//    group via a negative pid.
+//  - Windows: `detached` has no process-group meaning and, combined with
+//    windowsHide, is a known-broken pairing — Windows still flashes a
+//    console because a detached child is granted its own console group,
+//    which overrides CREATE_NO_WINDOW. So on Windows we spawn *not*
+//    detached (windowsHide alone reliably hides it) and kill the tree with
+//    `taskkill /T /F`, which walks child processes by pid regardless.
+function spawnOpts(extra) {
+  return process.platform === 'win32'
+    ? { ...extra, windowsHide: true }
+    : { ...extra, detached: true };
+}
+function killTree(proc) {
+  if (!proc) return;
+  if (process.platform === 'win32') {
+    try { execSync(`taskkill /pid ${proc.pid} /T /F`, { windowsHide: true }); } catch (e) { try { proc.kill('SIGTERM'); } catch (e2) {} }
+  } else {
+    try { process.kill(-proc.pid, 'SIGTERM'); } catch (e) { try { proc.kill('SIGTERM'); } catch (e2) {} }
+  }
+}
+
 ipcMain.handle('run-command', async (event, command) => {
-  if (activeProcess) { try { process.kill(-activeProcess.pid, 'SIGTERM'); } catch(e) { activeProcess.kill('SIGTERM'); } activeProcess = null; }
+  if (activeProcess) { killTree(activeProcess); activeProcess = null; }
   isCancelled = false;
   return new Promise((resolve) => {
-    // detached so the shell gets its own process group — lets cancel-command
-    // kill the whole tree (yt-dlp/ffmpeg/spotdl), not just the shell wrapper.
-    activeProcess = spawn(prepareCommand(command), { shell: true, cwd: app.getPath('downloads'), detached: true });
+    activeProcess = spawn(prepareCommand(command), spawnOpts({ shell: true, cwd: app.getPath('downloads') }));
     activeProcess.stderr.on('data', (data) => {
       for (const line of data.toString().split('\n')) {
         const p = parseProgress(line);
@@ -357,7 +393,7 @@ ipcMain.handle('run-command', async (event, command) => {
 ipcMain.handle('cancel-command', async () => {
   if (activeProcess) {
     isCancelled = true;
-    try { process.kill(-activeProcess.pid, 'SIGTERM'); } catch(e) { activeProcess.kill('SIGTERM'); }
+    killTree(activeProcess);
     activeProcess = null; return { success: true };
   }
   return { success: false, message: 'No active download' };
@@ -376,13 +412,19 @@ function lastLine(output) {
 // Runs one child process at a time, tracked in the same `activeProcess`
 // variable the run-command/cancel-command handlers use, so the existing
 // cancel button works here too without any extra plumbing.
+// stdout and stderr are kept separate (not interleaved into one buffer) —
+// they arrive on independent async streams, so merging them into a single
+// "last line wins" buffer isn't reliable: stderr progress/warning output can
+// land after stdout's final print (e.g. yt-dlp's --print after_move:filepath),
+// pushing the value callers actually need out of the last-line position.
 function runStep(cmd, args, cwd, progressPrefix) {
   return new Promise((resolve) => {
-    activeProcess = spawn(cmd, args, { cwd, detached: true });
+    activeProcess = spawn(cmd, args, spawnOpts({ cwd }));
     let stdout = '';
-    const onData = (data) => {
+    let stderr = '';
+    const onData = (data, which) => {
       const text = data.toString();
-      stdout += text;
+      if (which === 'out') stdout += text; else stderr += text;
       for (const line of text.split('\n')) {
         const p = parseProgress(line);
         if (p && mainWindow && !mainWindow.isDestroyed()) {
@@ -390,49 +432,72 @@ function runStep(cmd, args, cwd, progressPrefix) {
         }
       }
     };
-    activeProcess.stdout.on('data', onData);
-    activeProcess.stderr.on('data', onData);
-    activeProcess.on('close', (code) => { activeProcess = null; resolve({ code, stdout }); });
+    activeProcess.stdout.on('data', (data) => onData(data, 'out'));
+    activeProcess.stderr.on('data', (data) => onData(data, 'err'));
+    activeProcess.on('close', (code) => { activeProcess = null; resolve({ code, stdout, stderr }); });
     activeProcess.on('error', (err) => { activeProcess = null; resolve({ code: -1, error: err }); });
   });
 }
 
 ipcMain.handle('remove-vocals', async (event, { url, outDir }) => {
-  if (activeProcess) { try { process.kill(-activeProcess.pid, 'SIGTERM'); } catch(e) { activeProcess.kill('SIGTERM'); } activeProcess = null; }
+  if (activeProcess) { killTree(activeProcess); activeProcess = null; }
   isCancelled = false;
   const dest = outDir || app.getPath('downloads');
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'stroom-vocals-'));
 
   try {
-    // Step 1: download audio via yt-dlp. --print after_move:filepath prints the
-    // final file path once post-processing (the mp3 conversion) is done.
+    // Step 1: download audio via yt-dlp. Write the final file path to a
+    // *file* via --print-to-file rather than reading it back off stdout —
+    // confirmed reproducible bug on Windows: the bundled (PyInstaller-
+    // frozen) yt-dlp.exe mangles non-ASCII characters when --print writes
+    // to a piped stdout (e.g. a title with "São" comes back as "Sao"),
+    // because its stdout encoding falls back to something narrower than
+    // UTF-8 once it detects it isn't attached to a real console. The file
+    // it actually saves on disk is unaffected — only the piped stdout print
+    // was wrong — and --print-to-file writes proper UTF-8, sidestepping the
+    // whole problem.
+    const printFile = path.join(tmpDir, '_filepath.txt');
     const dl = await runStep(
       resolveTool('yt-dlp'),
-      ['-x', '--audio-format', 'mp3', '--ffmpeg-location', resolveTool('ffmpeg'), '--print', 'after_move:filepath', '-o', path.join(tmpDir, '%(title)s.%(ext)s'), url],
+      ['-x', '--audio-format', 'mp3', '--ffmpeg-location', resolveTool('ffmpeg'), '--print-to-file', 'after_move:filepath', printFile, '-o', path.join(tmpDir, '%(title)s.%(ext)s'), url],
       tmpDir, '⬇️ '
     );
     if (isCancelled) return { success: false, cancelled: true, message: 'Cancelled' };
     if (dl.error) return { success: false, message: `yt-dlp not found: ${dl.error.message}` };
-    if (dl.code !== 0) return { success: false, message: `Download failed (exit ${dl.code}): ${lastLine(dl.stdout)}` };
+    if (dl.code !== 0) return { success: false, message: `Download failed (exit ${dl.code}): ${lastLine(dl.stdout + dl.stderr)}` };
 
-    const lines = dl.stdout.split('\n').map(l => l.trim()).filter(Boolean);
-    const audioFile = lines[lines.length - 1];
-    if (!audioFile || !fs.existsSync(audioFile)) return { success: false, message: 'Could not locate downloaded audio file' };
+    const lines = fs.existsSync(printFile) ? fs.readFileSync(printFile, 'utf8').split('\n').map(l => l.trim()).filter(Boolean) : [];
+    const audioFile = [...lines].reverse().find(l => fs.existsSync(l));
+    if (!audioFile) {
+      return { success: false, message: `Could not locate downloaded audio file — yt-dlp output: ${lastLine(dl.stdout + dl.stderr)}` };
+    }
 
     // Step 2: split vocals from instrumental with demucs.
+    // demucs is also a frozen (PyInstaller) exe with the same class of
+    // Windows bug as yt-dlp above, but on its *input* side this time —
+    // confirmed reproducible: it mangles non-ASCII characters in its own
+    // command-line arguments (reported a "São Paulo"-titled file as "does
+    // not exist" because it read the accent as a corrupted byte), so it
+    // can't open any file whose YouTube title has a non-ASCII character.
+    // Sidestep entirely by feeding it a safe ASCII-only copy of the audio
+    // instead of the real (possibly Unicode) downloaded filename — the
+    // real title (`base`) is still used for the final saved output names.
+    const base = path.basename(audioFile, path.extname(audioFile));
+    const demucsInput = path.join(tmpDir, 'input' + path.extname(audioFile));
+    fs.copyFileSync(audioFile, demucsInput);
+
     const sep = await runStep(
       resolveTool('demucs'), // not bundled yet — falls back to PATH
-      ['--two-stems=vocals', '--mp3', '-o', path.join(tmpDir, 'separated'), audioFile],
+      ['--two-stems=vocals', '--mp3', '-o', path.join(tmpDir, 'separated'), demucsInput],
       tmpDir, '🎤 '
     );
     if (isCancelled) return { success: false, cancelled: true, message: 'Cancelled' };
     if (sep.error) return { success: false, message: 'demucs not found — click "🔧 Update Tools" to install it' };
-    if (sep.code !== 0) return { success: false, message: `Vocal separation failed (exit ${sep.code}): ${lastLine(sep.stdout)}` };
+    if (sep.code !== 0) return { success: false, message: `Vocal separation failed (exit ${sep.code}): ${lastLine(sep.stdout + sep.stderr)}` };
 
     // demucs produces both stems in one pass — save the instrumental and the
     // isolated vocals-only track, since the separation work is already done.
-    const base = path.basename(audioFile, path.extname(audioFile));
-    const stemDir = path.join(tmpDir, 'separated', 'htdemucs', base);
+    const stemDir = path.join(tmpDir, 'separated', 'htdemucs', 'input');
     const instrumentalSrc = path.join(stemDir, 'no_vocals.mp3');
     const vocalsSrc = path.join(stemDir, 'vocals.mp3');
     if (!fs.existsSync(instrumentalSrc)) return { success: false, message: 'Instrumental output not found' };

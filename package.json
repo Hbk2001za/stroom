@@ -94,6 +94,10 @@
         {
           "from": "build/bin/win/spotdl.exe",
           "to": "bin/spotdl.exe"
+        },
+        {
+          "from": "build/bin/win/demucs.exe",
+          "to": "bin/demucs.exe"
         }
       ]
     },

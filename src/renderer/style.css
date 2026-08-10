@@ -141,8 +141,32 @@ button:hover { background: #0077ed; }
 button:active { background: #0060c0; }
 button:disabled { background: #a1a1a6; cursor: not-allowed; }
 
-.cancel-btn { background: #ff3b30; }
+/* A plain CSS-drawn stop-square instead of the ⏹ emoji glyph — emoji font
+   rendering differs sharply by OS (Windows' Segoe UI Emoji draws a chunky,
+   bordered box next to Apple's clean SF rendering), so relying on it made
+   the button look broken/ugly on Windows. Drawing the icon ourselves with
+   ::before renders identically everywhere. */
+.cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #ff3b30;
+}
 .cancel-btn:hover { background: #ff453a; }
+.cancel-btn::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.cancel-btn.icon-only {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+}
 
 select { max-width: 110px; }
 

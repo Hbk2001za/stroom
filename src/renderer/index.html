@@ -46,7 +46,7 @@
             <option value="360">360p</option>
           </select>
           <button id="btn-yt-video" onclick="download('yt-video', 'video')">Download</button>
-          <button class="cancel-btn" id="cancel-yt-video" onclick="cancelDownload('yt-video')" style="display:none;">⏹</button>
+          <button class="cancel-btn icon-only" id="cancel-yt-video" onclick="cancelDownload('yt-video')" style="display:none;" aria-label="Stop" title="Stop"></button>
         </div>
         <div class="progress-container" id="progress-yt-video">
           <div class="progress-bar"><div class="progress-fill" id="fill-yt-video"></div></div>
@@ -67,7 +67,7 @@
             <option value="128">128kbps</option>
           </select>
           <button id="btn-yt-mp3" onclick="download('yt-mp3', 'mp3')">Download</button>
-          <button class="cancel-btn" id="cancel-yt-mp3" onclick="cancelDownload('yt-mp3')" style="display:none;">⏹</button>
+          <button class="cancel-btn icon-only" id="cancel-yt-mp3" onclick="cancelDownload('yt-mp3')" style="display:none;" aria-label="Stop" title="Stop"></button>
         </div>
         <div class="progress-container" id="progress-yt-mp3">
           <div class="progress-bar"><div class="progress-fill" id="fill-yt-mp3"></div></div>
@@ -88,7 +88,7 @@
             <option value="128">128kbps</option>
           </select>
           <button id="btn-spotify-public" onclick="download('spotify-public', 'spotify-public')">Download</button>
-          <button class="cancel-btn" id="cancel-spotify-public" onclick="cancelDownload('spotify-public')" style="display:none;">⏹</button>
+          <button class="cancel-btn icon-only" id="cancel-spotify-public" onclick="cancelDownload('spotify-public')" style="display:none;" aria-label="Stop" title="Stop"></button>
         </div>
         <div class="progress-container" id="progress-spotify-public">
           <div class="progress-bar"><div class="progress-fill" id="fill-spotify-public"></div></div>
@@ -107,7 +107,7 @@
             <option value="audio">Audio (MP3)</option>
           </select>
           <button id="btn-generic-url" onclick="download('generic-url', 'generic')">Download</button>
-          <button class="cancel-btn" id="cancel-generic-url" onclick="cancelDownload('generic-url')" style="display:none;">⏹</button>
+          <button class="cancel-btn icon-only" id="cancel-generic-url" onclick="cancelDownload('generic-url')" style="display:none;" aria-label="Stop" title="Stop"></button>
         </div>
         <div class="progress-container" id="progress-generic-url">
           <div class="progress-bar"><div class="progress-fill" id="fill-generic-url"></div></div>
@@ -122,7 +122,7 @@
         <div class="row">
           <input type="text" id="remove-vocals" placeholder="Paste a YouTube or any supported URL...">
           <button id="btn-remove-vocals" onclick="download('remove-vocals', 'remove-vocals')">Remove Vocals</button>
-          <button class="cancel-btn" id="cancel-remove-vocals" onclick="cancelDownload('remove-vocals')" style="display:none;">⏹</button>
+          <button class="cancel-btn icon-only" id="cancel-remove-vocals" onclick="cancelDownload('remove-vocals')" style="display:none;" aria-label="Stop" title="Stop"></button>
         </div>
         <div class="progress-container" id="progress-remove-vocals">
           <div class="progress-bar"><div class="progress-fill" id="fill-remove-vocals"></div></div>
@@ -152,7 +152,7 @@
             <option value="480">480p / 128kbps</option>
           </select>
           <button id="btn-batch" onclick="downloadBatch()">Download All</button>
-          <button class="cancel-btn" id="cancel-batch" onclick="cancelDownload('batch')" style="display:none;">⏹ Stop All</button>
+          <button class="cancel-btn" id="cancel-batch" onclick="cancelDownload('batch')" style="display:none;">Stop All</button>
         </div>
         <div class="progress-container" id="progress-batch">
           <div class="progress-bar"><div class="progress-fill" id="fill-batch"></div></div>
