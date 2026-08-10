@@ -443,13 +443,18 @@ async function copyAddress(address, btn) {
 }
 
 // ============ UPDATE TOOLS (sets up demucs for Remove Vocals) ============
+function closeReport() {
+  document.getElementById('report-modal').style.display = 'none';
+}
+
 async function runUpdateTools() {
   const btn = document.getElementById('update-tools-btn');
   const original = btn.textContent;
   btn.disabled = true;
   btn.textContent = '⏳ Setting up...';
   const result = await window.api.updateTools();
-  alert('✅ Setup report:\n\n' + result);
+  document.getElementById('report-modal-text').textContent = result;
+  document.getElementById('report-modal').style.display = 'flex';
   btn.disabled = false;
   btn.textContent = original;
 }

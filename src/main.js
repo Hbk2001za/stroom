@@ -296,8 +296,13 @@ ipcMain.handle('update-tools', async () => {
       // install was silently killed mid-way ("creating virtual
       // environment... installing demucs..." then nothing), which then
       // made the next step fail too since no venv existed to inject into.
+      // On Intel Mac, a from-source Rust/cargo compile of sphn+audiopus_sys
+      // (needed since that dependency also dropped Intel Mac wheels) can
+      // legitimately take even longer than the PyTorch download itself, so
+      // this needs real headroom — bumped to 20 minutes, with a bigger
+      // maxBuffer since cargo's build output is verbose.
       const result = await new Promise((resolve, reject) => {
-        exec(cmd, { timeout: 600000, maxBuffer: 1024 * 1024 * 10, env: process.env }, (err, stdout, stderr) => {
+        exec(cmd, { timeout: 1200000, maxBuffer: 1024 * 1024 * 50, env: process.env }, (err, stdout, stderr) => {
           resolve(stdout + stderr);
         });
       });

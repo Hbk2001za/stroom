@@ -443,6 +443,16 @@ body.dark #app-logo {
   padding: 2px 4px;
 }
 
+.report-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+
 .disclaimer {
   font-size: 10.5px;
   color: var(--label);
