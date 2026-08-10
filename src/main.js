@@ -9,6 +9,33 @@ let splashWindow;
 let activeProcess = null;
 let isCancelled = false;
 
+// ── Fix PATH for GUI-launched apps ──────────────────
+// A double-clicked .app on macOS gets a bare PATH from launchd/LaunchServices
+// (no Homebrew, no ~/.local/bin), unlike a Terminal shell. Without this,
+// yt-dlp/ffmpeg/spotdl/demucs all fail with "command not found" (exit 127)
+// even though they work fine when the app is started via `npm start`.
+function fixPath() {
+  if (process.platform === 'win32') return; // Windows PATH is inherited correctly already
+  const home = os.homedir();
+  const fallbackDirs = [
+    '/opt/homebrew/bin', '/opt/homebrew/sbin',
+    '/usr/local/bin', '/usr/local/sbin',
+    path.join(home, '.local/bin'),
+    '/usr/bin', '/bin', '/usr/sbin', '/sbin'
+  ];
+
+  let loginShellPath = '';
+  try {
+    const shell = process.env.SHELL || '/bin/zsh';
+    loginShellPath = execSync(`${shell} -ilc 'echo -n "$PATH"'`, { encoding: 'utf8', timeout: 5000 }).trim();
+  } catch (e) { /* login shell probing failed — fall back to the hardcoded list below */ }
+
+  const combined = [loginShellPath, process.env.PATH, ...fallbackDirs].filter(Boolean).join(':');
+  const seen = new Set();
+  process.env.PATH = combined.split(':').filter(p => p && !seen.has(p) && seen.add(p)).join(':');
+}
+fixPath();
+
 // ── Splash screen ──────────────────────────────────
 function createSplashScreen() {
   splashWindow = new BrowserWindow({
