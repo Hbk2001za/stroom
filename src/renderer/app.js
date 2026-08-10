@@ -1,6 +1,17 @@
 // ============ STATE ============
 let history = [];
 let currentDownloadId = null;
+let downloadPath = '';
+
+// ============ INIT DOWNLOAD PATH ============
+async function initDownloadPath() {
+  const saved = localStorage.getItem('stroom-download-path');
+  if (saved) {
+    downloadPath = saved;
+  } else {
+    downloadPath = await window.api.getDefaultDownloadPath();
+  }
+}
 
 // ============ COMMANDS ============
 const qualityMap = {
@@ -18,7 +29,6 @@ const bitrateMap = {
   128: '128k'
 };
 
-// Quality selector for batch: maps batch quality to video format and mp3 bitrate
 const batchQualityMap = {
   best: { video: 'best', mp3: '320', spotify: '320' },
   1080: { video: '1080', mp3: '256', spotify: '256' },
@@ -27,21 +37,22 @@ const batchQualityMap = {
 };
 
 function buildCommand(type, url, quality) {
+  const outDir = downloadPath || '~/Downloads';
   switch(type) {
     case 'video':
       const fmt = qualityMap[quality] || qualityMap.best;
-      return `yt-dlp -f "${fmt}" -o ~/Downloads/"%(title)s.%(ext)s" "${url}"`;
+      return `yt-dlp -f "${fmt}" -o "${outDir}/%(title)s.%(ext)s" "${url}"`;
     case 'mp3':
       const br = bitrateMap[quality] || '320k';
-      return `yt-dlp -x --audio-format mp3 --audio-quality ${br} -o ~/Downloads/"%(title)s.mp3" "${url}"`;
+      return `yt-dlp -x --audio-format mp3 --audio-quality ${br} -o "${outDir}/%(title)s.mp3" "${url}"`;
     case 'spotify-public':
       const sbr = bitrateMap[quality] || '320k';
-      return `spotdl download "${url}" --bitrate ${sbr} --output ~/Downloads`;
+      return `spotdl download "${url}" --bitrate ${sbr} --output "${outDir}"`;
     case 'spotify-private':
       const pbr = bitrateMap[quality] || '320k';
-      return `spotdl download "${url}" --user-auth --bitrate ${pbr} --output ~/Downloads`;
+      return `spotdl download "${url}" --user-auth --bitrate ${pbr} --output "${outDir}"`;
     default:
-      return `yt-dlp -x --audio-format mp3 -o ~/Downloads/"%(title)s.mp3" "${url}"`;
+      return `yt-dlp -x --audio-format mp3 -o "${outDir}/%(title)s.mp3" "${url}"`;
   }
 }
 
@@ -192,7 +203,6 @@ async function downloadBatch() {
 
   if (urls.length === 0) { statusEl.textContent = 'Please paste at least one URL'; statusEl.className = 'status error'; return; }
 
-  // Detect if mixed YouTube and Spotify URLs
   const hasYoutube = urls.some(u => u.includes('youtube.com') || u.includes('youtu.be'));
   const hasSpotify = urls.some(u => u.includes('spotify.com'));
   
@@ -202,7 +212,6 @@ async function downloadBatch() {
     return;
   }
 
-  // Map batch quality to the specific type
   const qMap = batchQualityMap[batchQuality] || batchQualityMap.best;
   let quality = qMap.video;
   if (type === 'mp3') quality = qMap.mp3;
@@ -253,6 +262,21 @@ async function cancelDownload(inputId) {
   const statusEl = document.getElementById(`status-${inputId}`);
   if (statusEl) statusEl.textContent = '⏹ Stopping...';
   await window.api.cancelCommand();
+}
+
+// ============ FOLDER BUTTONS ============
+async function chooseDownloadFolder() {
+  const path = await window.api.chooseDownloadFolder();
+  if (path) {
+    downloadPath = path;
+    localStorage.setItem('stroom-download-path', path);
+    const folderDisplay = document.getElementById('current-folder-display');
+    if (folderDisplay) folderDisplay.textContent = `Download folder: ${path}`;
+  }
+}
+
+async function openDownloadsFolder() {
+  await window.api.openFolder(downloadPath);
 }
 
 // ============ HISTORY ============
@@ -341,10 +365,23 @@ function clearHistory() {
   }
 }
 
-// Close modal on background click
-document.getElementById('history-modal').addEventListener('click', function(e) {
-  if (e.target === this) closeHistory();
+// ============ INIT ============
+async function initApp() {
+  await initDownloadPath();
+  const folderDisplay = document.getElementById('current-folder-display');
+  if (folderDisplay) folderDisplay.textContent = `Download folder: ${downloadPath}`;
+  loadHistory();
+}
+
+// Update tools button
+document.getElementById('update-tools-btn')?.addEventListener('click', async () => {
+  const btn = document.getElementById('update-tools-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Updating...';
+  const result = await window.api.updateTools();
+  alert('✅ Update report:\n\n' + result);
+  btn.disabled = false;
+  btn.textContent = '🔧 Update Tools';
 });
 
-// ============ INIT ============
-loadHistory();
+initApp();

@@ -1,7 +1,7 @@
 {
-  "name": "Stroom",
+  "name": "stroom",
   "version": "1.0.0",
-  "description": "Download YouTube videos, YouTube MP3s, and Spotify playlists",
+  "description": "Download YouTube videos, MP3s, and Spotify playlists",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
@@ -12,19 +12,24 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^latest",
-    "electron-builder": "^latest"
+    "electron": "28.3.3",
+    "electron-builder": "^24.13.3"
   },
   "build": {
     "appId": "com.stroom.app",
     "productName": "Stroom",
     "mac": {
       "category": "public.app-category.utilities",
-      "target": "dmg"
+      "target": [
+        { "target": "dmg", "arch": ["universal"] }
+      ],
+      "icon": "build/logo.icns"
     },
     "win": {
-      "target": "nsis",
-      "icon": "build/icon.ico"
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "icon": "build/logo.ico"
     },
     "nsis": {
       "oneClick": false,
@@ -34,7 +39,8 @@
     },
     "files": [
       "src/**/*",
-      "scripts/**/*"
+      "build/logo.icns",
+      "build/logo.ico"
     ]
   }
 }

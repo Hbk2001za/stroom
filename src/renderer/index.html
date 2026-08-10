@@ -10,8 +10,8 @@
   <div class="container">
     
     <div class="header">
-      <img id="app-logo" src="logo.svg" alt="Logo" width="300" height="75" style="display:block; margin:20px auto; filter: drop-shadow(0 0 16px rgba(255,255,255,0.4)); max-width:100%;" />
-      <h1></h1>
+      <img src="logo.svg" alt="Stroom" width="48" height="48">
+      <h1>Stroom</h1>
       <button class="dark-toggle" onclick="toggleDark()" title="Toggle dark mode">🌙</button>
     </div>
 
@@ -156,7 +156,14 @@
       </div>
     </div>
 
-    <button class="folder-btn" onclick="window.api.openDownloads()">📂 Open Downloads Folder</button>
+    <!-- Folder & Update Buttons -->
+    <div class="folder-row">
+      <button class="folder-btn" onclick="chooseDownloadFolder()">📁 Choose Download Folder</button>
+      <button class="folder-btn" onclick="openDownloadsFolder()">📂 Open Downloads Folder</button>
+      <button class="folder-btn" id="update-tools-btn">🔧 Update Tools</button>
+    </div>
+    <div id="current-folder-display" class="folder-path"></div>
+
   </div>
 
   <!-- History Modal -->

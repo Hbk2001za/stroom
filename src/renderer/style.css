@@ -366,3 +366,18 @@ select { max-width: 110px; }
 #app-logo:hover {
   filter: drop-shadow(0 0 12px rgba(255,255,255,0.5));
 }
+
+.folder-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+.folder-row .folder-btn {
+  flex: 1;
+}
+.folder-path {
+  font-size: 11px;
+  color: var(--label);
+  margin-top: 4px;
+  text-align: center;
+}
